@@ -1,18 +1,19 @@
 /* ────────────────────────────────────────────────────────────────
    llm.js — optional Gemini back-end for the assistant.
 
-   The browser never sees the API key. It talks to a Cloudflare Worker
-   (see worker/gemini-proxy.js) which holds the key as a secret and
-   forwards the call to Google AI Studio's free tier.
+   The browser never sees the API key. It posts to /api/chat — a
+   Cloudflare Pages Function (functions/api/chat.js) holding the key as
+   an environment secret and forwarding to Google AI Studio's free tier.
 
-   Leave ENDPOINT empty and the assistant stays fully offline — the
-   local intent index in assistant.js answers everything. Set it and
-   the index becomes the fallback for quota errors and outages.
+   Same origin, so there is no CORS to configure. Anywhere the endpoint
+   is missing (local file://, GitHub Pages, a 404) the call fails and
+   the local intent index in assistant.js answers instead — set
+   ENDPOINT to '' to skip the attempt entirely.
    ──────────────────────────────────────────────────────────────── */
 
 const LLM = (() => {
-  /* ── paste your deployed Worker URL here ──────────────────── */
-  const ENDPOINT = '';
+  /* Same-origin Pages Function. Set to '' to force the offline index. */
+  const ENDPOINT = '/api/chat';
   const TIMEOUT_MS = 12000;
 
   /* The résumé, flattened once. Small enough to send with every
