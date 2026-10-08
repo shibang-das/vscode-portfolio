@@ -18,10 +18,21 @@ const Assistant = (() => {
   /* ── intent index ─────────────────────────────────────────── */
   const INTENTS = [
     {
-      k: ['hi', 'hello', 'hey', 'who', 'about', 'yourself', 'introduce', 'bio', 'tell me about', 'summary'],
+      k: ['hi', 'hello', 'hey', 'who', 'about you', 'about him', 'about shibang', 'yourself',
+          'introduce', 'bio', 'summary', 'background'],
+      w: 0.9,
       a: () => `<p>I'm <b>Shibang Das</b> — a backend engineer currently interning at <b>Joveo</b>, building Java/Spring Boot microservices on AWS with Kafka and PostgreSQL.</p>
         <p>BTech + MTech from <b>IIT (BHU) Varanasi</b> (CPI 8.41). Outside work: Codeforces Expert, LeetCode Knight, and a national-level chess player.</p>`,
       open: 'about'
+    },
+    {
+      k: ['hire', 'hiring', 'recruit', 'open to work', 'looking for', 'opportunit', 'opening',
+          'vacancy', 'notice period', 'relocat', 'full time', 'full-time', 'join us', 'offer',
+          'can i hire', 'are you available', 'availab'],
+      w: 1.4,
+      a: () => `<p>Yes — open to backend and full-stack roles. Currently a Backend Intern at <b>Joveo</b> (Java, Spring Boot, Kafka, AWS), graduating from <b>IIT (BHU) Varanasi</b>.</p>
+        <p>Best route is email: <span class="kv">${PROFILE.email}</span> — or <a href="${PROFILE.linkedin}" target="_blank" rel="noreferrer">LinkedIn</a>, or <span class="kv">${PROFILE.phone}</span>. The résumé is at the bottom of the sidebar.</p>`,
+      open: 'contact'
     },
     {
       k: ['experience', 'work', 'job', 'role', 'career', 'company', 'intern', 'employment', 'joveo', 'tredence', 'datacurve', 'neuronexus'],
@@ -62,13 +73,13 @@ const Assistant = (() => {
       open: 'about'
     },
     {
-      k: ['contact', 'reach', 'email', 'hire', 'hiring', 'talk', 'connect', 'phone', 'linkedin', 'available'],
+      k: ['contact', 'reach', 'email', 'talk', 'connect', 'phone', 'linkedin', 'get in touch', 'mail'],
       a: () => `<p>Easiest route is email: <span class="kv">${PROFILE.email}</span></p>
         <p>Also on <a href="${PROFILE.linkedin}" target="_blank" rel="noreferrer">LinkedIn</a> and reachable at <span class="kv">${PROFILE.phone}</span>. The contact form on <b>contact.sh</b> works too.</p>`,
       open: 'contact'
     },
     {
-      k: ['chess', 'hobby', 'fun', 'outside', 'interest', 'knight', 'game'],
+      k: ['chess', 'hobb', 'fun', 'outside work', 'interest', 'knight', 'mini-game', 'free time'],
       a: () => `<p>Chess, seriously — national level and Inter-IIT, U14 in 2015-16 and U17 in 2016-17, 2000+ across formats.</p>
         <p>There's a Knight Run mini-game hidden in this panel; it appears when the query budget runs out.</p>`
     },
@@ -100,12 +111,40 @@ const Assistant = (() => {
     'How do I get in touch?'
   ];
 
+  /* ── matching ─────────────────────────────────────────────── */
+  /* Substring scoring on its own is too blunt: "can I hire you for
+     software engineer roles?" scores 'hire' (contact) and 'role'
+     (experience) equally, and the tie goes to whichever intent is
+     declared first. So: match on word boundaries, weight multi-word
+     phrases above single words, and let an intent carry a weight for
+     the cases where two readings are genuinely close. */
+  const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  function scoreIntent(q, intent) {
+    let s = 0, hits = 0;
+    for (const k of intent.k) {
+      const phrase = k.includes(' ');
+      /* Single words take a short suffix so 'role' catches 'roles' and
+         'optimis' catches 'optimised'. Phrases are matched whole, so
+         'about you' does not fire on "about your experience". Keywords
+         ending in punctuation ('c++') skip the boundary entirely. */
+      const head = /^\w/.test(k) ? '\\b' : '';
+      const tail = !/\w$/.test(k) ? '' : phrase ? '\\b' : '[a-z]{0,3}\\b';
+      const re = new RegExp(head + escapeRe(k) + tail, 'i');
+      if (!re.test(q)) continue;
+      hits++;
+      s += phrase ? k.length * 2.5 : k.length;
+    }
+    if (!hits) return 0;
+    if (hits > 1) s *= 1.15;                    // several signals beat one
+    return s * (intent.w || 1);
+  }
+
   function match(raw) {
     const q = raw.toLowerCase();
     let best = null, bestScore = 0;
     for (const it of INTENTS) {
-      let s = 0;
-      for (const k of it.k) if (q.includes(k)) s += k.length;
+      const s = scoreIntent(q, it);
       if (s > bestScore) { bestScore = s; best = it; }
     }
     return bestScore > 0 ? best : null;
