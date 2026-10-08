@@ -14,10 +14,9 @@ const Assistant = (() => {
   /* ── intent index ─────────────────────────────────────────── */
   const INTENTS = [
     {
-      k: ['who', 'about', 'yourself', 'introduce', 'bio', 'tell me about', 'summary'],
+      k: ['hi', 'hello', 'hey', 'who', 'about', 'yourself', 'introduce', 'bio', 'tell me about', 'summary'],
       a: () => `<p>I'm <b>Shibang Das</b> — a backend engineer currently interning at <b>Joveo</b>, building Java/Spring Boot microservices on AWS with Kafka and PostgreSQL.</p>
-        <p>BTech + MTech from <b>IIT (BHU) Varanasi</b> (CPI 8.41). Outside work: Codeforces Expert, LeetCode Knight, and a national-level chess player.</p>
-        <p class="kv">open about.md →</p>`,
+        <p>BTech + MTech from <b>IIT (BHU) Varanasi</b> (CPI 8.41). Outside work: Codeforces Expert, LeetCode Knight, and a national-level chess player.</p>`,
       open: 'about'
     },
     {
@@ -71,7 +70,7 @@ const Assistant = (() => {
     },
     {
       k: ['resume', 'cv', 'download', 'pdf'],
-      a: () => `<p>The résumé is on the sidebar and in the File menu — or just say the word:</p><p class="kv">→ use the Résumé.pdf button, or run <b>resume</b> in the terminal.</p>`
+      a: () => `<p>The résumé is on the sidebar and in the File menu — or just say the word.</p>`
     },
     {
       k: ['latency', 'performance', 'optimis', 'optimiz', 'analytics', 'unified'],
@@ -86,7 +85,7 @@ const Assistant = (() => {
     }
   ];
 
-  const FALLBACK = `<p>I only know what's in the résumé index — try asking about <b>experience</b>, <b>projects</b>, <b>skills</b>, <b>achievements</b>, <b>education</b> or <b>contact</b>.</p>`;
+  const FALLBACK = `<p>I only know what's in the résumé index — try asking about <b>experience</b>, <b>projects</b>, <b>skills</b>, <b>achievements</b>, <b>education</b>, <b>resume</b> or <b>contact</b>.</p>`;
 
   const SUGGESTIONS = [
     'Who is Shibang?',
@@ -142,7 +141,7 @@ const Assistant = (() => {
     els.input.disabled = forced;
     els.input.placeholder = quota > 0
       ? 'Ask about my work, stack, or ratings…'
-      : 'Budget spent — score 30 in Knight Run for 5 more.';
+      : 'Budget spent — score 10 in Knight Run for 5 more.';
     els.playBtn.classList.toggle('active', forced || gameManual);
     refreshGame();
   }
@@ -156,7 +155,7 @@ const Assistant = (() => {
       gameMounted = true;
       KnightRun.mount(els.canvas,
         { score: els.gScore, best: els.gBest, hint: els.gHint },
-        n => { quota += n; updateQuota(); App.toast(`+${n} queries unlocked`, 'ok'); });
+        n => { quota += n; updateQuota(); bubble('assistant', `<p class="dim-inline"><span class="ok">+${n} queries</span> unlocked by playing Knight Run.</p>`); });
     }
   }
 
@@ -166,7 +165,7 @@ const Assistant = (() => {
   }
 
   function backToChat() {
-    if (quota <= 0) { App.toast('Score 30 to unlock more queries first.', 'err'); return; }
+    if (quota <= 0) { bubble('assistant', '<p class="err">Score 10 to unlock more queries first.</p>'); return; }
     gameManual = false;
     updateQuota();
   }
@@ -175,9 +174,9 @@ const Assistant = (() => {
   function send(text) {
     const q = (text || els.input.value).trim();
     if (!q || busy) return;
-    if (quota <= 0) { App.toast('Query budget spent — beat Knight Run for more.', 'err'); return; }
+    if (quota <= 0) { bubble('assistant', '<p class="err">Query budget spent — beat Knight Run for more.</p>'); return; }
 
-    if (els.body.querySelector('.as-welcome')) els.body.innerHTML = '';
+    // if (els.body.querySelector('.as-welcome')) els.body.innerHTML = '';
     els.input.value = '';
     els.input.style.height = 'auto';
     bubble('user', escapeHtml(q));
@@ -190,14 +189,6 @@ const Assistant = (() => {
 
     setTimeout(() => {
       t.querySelector('.bubble').innerHTML = html;
-      if (intent && intent.open) {
-        const btn = document.createElement('button');
-        btn.className = 'as-sug';
-        btn.style.marginTop = '9px';
-        btn.textContent = `Open ${FILES.find(f => f.id === intent.open).name} →`;
-        btn.addEventListener('click', () => App.openFile(intent.open));
-        t.querySelector('.bubble').appendChild(btn);
-      }
       els.body.scrollTop = els.body.scrollHeight;
       busy = false; els.send.disabled = quota <= 0;
     }, 420 + Math.random() * 380);
@@ -227,7 +218,7 @@ const Assistant = (() => {
       welcome(); updateQuota();
 
       els.send.addEventListener('click', () => send());
-      els.reset.addEventListener('click', () => { welcome(); App.toast('New chat'); });
+      els.reset.addEventListener('click', () => { welcome(); bubble('assistant', '<p class="dim-inline">Started a new chat.</p>'); });
       els.playBtn.addEventListener('click', toggleGamePanel);
       els.gBack.addEventListener('click', backToChat);
       els.input.addEventListener('input', () => {

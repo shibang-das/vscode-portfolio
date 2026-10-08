@@ -151,17 +151,18 @@ code { font-family: 'JetBrains Mono', monospace; font-size: .92em; color: var(--
 /* ── body grid: sidebar | editor | right rail ───────────────── */
 .body-grid {
   display: grid;
-  grid-template-columns: var(--side-w, 244px) 1fr 46px;
+  grid-template-columns: var(--side-w, 244px) 1fr auto 46px;
   min-height: 0; overflow: hidden;
 }
-.body-grid.side-off { grid-template-columns: 0 1fr 46px; }
+.body-grid.side-off { grid-template-columns: 0 1fr auto 46px; }
 .body-grid.side-off .sidebar { display: none; }
 
 /* Pin explicit tracks: once .sidebar becomes position:fixed on mobile it drops
    out of grid auto-placement, which would otherwise shift editor-col/rail left. */
 .sidebar    { grid-column: 1; }
 .editor-col { grid-column: 2; }
-.rail       { grid-column: 3; }
+.assistant  { grid-column: 3; }
+.rail       { grid-column: 4; }
 
 /* sidebar */
 .sidebar {
@@ -206,6 +207,8 @@ code { font-family: 'JetBrains Mono', monospace; font-size: .92em; color: var(--
 .tree-file .fico { font-size: 11px; width: 14px; text-align: center; flex: none; }
 .tree-file .dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--acc2); opacity: .8; }
 .side-foot { margin-top: auto; padding-top: 10px; }
+.resume-actions { display: flex; gap: 6px; }
+.resume-actions .ghost-btn { font-size: 11px; padding: 7px 6px; }
 
 .ghost-btn {
   display: inline-flex; align-items: center; gap: 7px; justify-content: center;
@@ -659,9 +662,9 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
 
 /* ── assistant ──────────────────────────────────────────────── */
 .assistant {
-  position: fixed; right: 46px; top: 38px; bottom: 24px; width: min(400px, 100vw);
+  position: relative; width: min(400px, 38vw); min-width: 300px; min-height: 0;
   background: var(--panel); border-left: 1px solid var(--border2);
-  display: flex; flex-direction: column; z-index: 120; box-shadow: -14px 0 40px rgba(0,0,0,.42);
+  display: flex; flex-direction: column; z-index: 1;
   animation: slideIn .2s cubic-bezier(.2,.9,.3,1);
 }
 @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } }
@@ -755,7 +758,7 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
 @media (max-width: 860px) {
   .menubar { display: none; }
   .only-compact { display: inline-flex; }
-  .body-grid { grid-template-columns: 0 1fr 44px; }
+  .body-grid { grid-template-columns: 0 1fr auto 44px; }
   .sidebar {
     position: fixed; left: 0; top: 38px; bottom: 24px; width: 264px; z-index: 150;
     box-shadow: var(--shadow); transform: translateX(-102%); transition: transform .22s cubic-bezier(.2,.9,.3,1);
@@ -765,7 +768,11 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
   .side-resizer { display: none; }
   .gutter { display: none; }
   .editor-inner { padding: 20px 18px 80px; }
-  .assistant { right: 0; width: 100vw; }
+  /* narrow screens: docking would crush the editor, so overlay instead */
+  .assistant {
+    position: fixed; right: 0; top: 38px; bottom: 24px; width: 100vw; min-width: 0;
+    z-index: 150; box-shadow: -14px 0 40px rgba(0,0,0,.42);
+  }
   .stat-strip { grid-template-columns: repeat(2, 1fr); }
   .hide-sm { display: none; }
   .tb-title { display: none; }
