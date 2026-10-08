@@ -1,6 +1,9 @@
 /* ────────────────────────────────────────────────────────────────
-   assistant.js — offline résumé assistant.
-   No network call: questions are scored against a local intent index.
+   assistant.js — résumé assistant.
+   Answers come from Gemini when llm.js has an endpoint configured, and
+   from the local intent index otherwise — or whenever the call fails,
+   so the panel never breaks. Either way the answer opens the matching
+   file in the editor on the left.
    A query budget mirrors a real rate limit; running out unlocks the
    Knight Run mini-game, which can win the budget back.
    ──────────────────────────────────────────────────────────────── */
@@ -10,6 +13,7 @@ const Assistant = (() => {
   const START_QUOTA = 10;
   let quota = START_QUOTA;
   let els = {}, busy = false, gameMounted = false, gameManual = false;
+  let history = [];   // last few turns, for LLM follow-up questions
 
   /* ── intent index ─────────────────────────────────────────── */
   const INTENTS = [
@@ -70,7 +74,8 @@ const Assistant = (() => {
     },
     {
       k: ['resume', 'cv', 'download', 'pdf'],
-      a: () => `<p>The résumé is on the sidebar and in the File menu — or just say the word.</p>`
+      a: () => `<p>Here it is — <a href="${PROFILE.resume}" target="_blank" rel="noopener">open the PDF</a> or <a href="${PROFILE.resume}" download>download it</a>. The same two buttons live at the bottom of the sidebar.</p>`,
+      open: 'resume'
     },
     {
       k: ['latency', 'performance', 'optimis', 'optimiz', 'analytics', 'unified'],
@@ -120,7 +125,9 @@ const Assistant = (() => {
     els.body.innerHTML = `
       <div class="as-welcome">
         <h4>Ask about my work</h4>
-        <p>An offline index of the résumé — experience, projects, skills, ratings, contact.</p>
+        <p>${LLM.enabled()
+            ? 'Ask anything about the résumé — experience, projects, skills, ratings, contact.'
+            : 'An offline index of the résumé — experience, projects, skills, ratings, contact.'}</p>
         <div class="as-sugs">${SUGGESTIONS.map(s => `<button class="as-sug">${s}</button>`).join('')}
           <button class="as-sug as-sug-game" id="asSugGame">▶ Play Knight Run <span class="dim-inline">(no budget needed)</span></button>
         </div>
@@ -171,7 +178,25 @@ const Assistant = (() => {
   }
 
   /* ── send loop ────────────────────────────────────────────── */
-  function send(text) {
+
+  /* Open the file the answer is about, so the editor on the left tracks
+     the conversation. 'resume' is a PDF, not an editor view — the bubble
+     carries its own links, so there is nothing to open. */
+  function reveal(id) {
+    if (!id || id === 'resume') return;
+    if (!FILES.some(f => f.id === id)) return;
+    App.openFile(id);
+  }
+
+  function localAnswer(q) {
+    const intent = match(q);
+    return {
+      html: intent ? (typeof intent.a === 'function' ? intent.a(q.toLowerCase()) : intent.a) : FALLBACK,
+      open: intent ? intent.open : null
+    };
+  }
+
+  async function send(text) {
     const q = (text || els.input.value).trim();
     if (!q || busy) return;
     if (quota <= 0) { bubble('assistant', '<p class="err">Query budget spent — beat Knight Run for more.</p>'); return; }
@@ -184,15 +209,32 @@ const Assistant = (() => {
 
     busy = true; els.send.disabled = true;
     const t = bubble('assistant', `<span class="typing"><i></i><i></i><i></i></span>`);
-    const intent = match(q);
-    const html = intent ? (typeof intent.a === 'function' ? intent.a(q.toLowerCase()) : intent.a) : FALLBACK;
+    const started = performance.now();
 
+    /* Gemini when it is configured and reachable; the local index whenever
+       it is not — quota exhausted, offline, timeout. The visitor never sees
+       the difference beyond answer quality. */
+    let reply = null;
+    if (LLM.enabled()) {
+      const res = await LLM.ask(q, history);
+      if (res) reply = { html: LLM.render(res.answer), open: res.open, text: res.answer };
+    }
+    if (!reply) reply = localAnswer(q);
+
+    history.push({ role: 'user', text: q });
+    history.push({ role: 'assistant', text: reply.text || stripTags(reply.html) });
+    if (history.length > 12) history.splice(0, history.length - 12);
+
+    const wait = Math.max(0, 420 + Math.random() * 380 - (performance.now() - started));
     setTimeout(() => {
-      t.querySelector('.bubble').innerHTML = html;
+      t.querySelector('.bubble').innerHTML = reply.html;
+      reveal(reply.open);
       els.body.scrollTop = els.body.scrollHeight;
       busy = false; els.send.disabled = quota <= 0;
-    }, 420 + Math.random() * 380);
+    }, wait);
   }
+
+  const stripTags = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
   const escapeHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -218,7 +260,7 @@ const Assistant = (() => {
       welcome(); updateQuota();
 
       els.send.addEventListener('click', () => send());
-      els.reset.addEventListener('click', () => { welcome(); bubble('assistant', '<p class="dim-inline">Started a new chat.</p>'); });
+      els.reset.addEventListener('click', () => { history = []; welcome(); bubble('assistant', '<p class="dim-inline">Started a new chat.</p>'); });
       els.playBtn.addEventListener('click', toggleGamePanel);
       els.gBack.addEventListener('click', backToChat);
       els.input.addEventListener('input', () => {
