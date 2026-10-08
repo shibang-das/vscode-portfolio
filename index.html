@@ -64,9 +64,14 @@
           <div id="fileTree" class="tree"></div>
         </div>
         <div class="side-foot">
-          <a class="ghost-btn" href="#" id="sideResume">
-            <svg viewBox="0 0 24 24" class="i"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 19h16"/></svg> Résumé.pdf
-          </a>
+          <div class="resume-actions">
+            <a class="ghost-btn" href="assets/Shibang_Das_Resume.pdf" target="_blank" rel="noopener" id="sideResumeView" title="View résumé in browser">
+              <svg viewBox="0 0 24 24" class="i"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg> View
+            </a>
+            <a class="ghost-btn" href="assets/Shibang_Das_Resume.pdf" download="Shibang_Das_Resume.pdf" id="sideResumeDownload" title="Download résumé">
+              <svg viewBox="0 0 24 24" class="i"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 19h16"/></svg> Download
+            </a>
+          </div>
         </div>
       </section>
 
@@ -138,6 +143,42 @@
       </section>
     </main>
 
+    <!-- ══ ASSISTANT ══ -->
+    <aside class="assistant hidden" id="assistant" aria-label="Assistant">
+      <div class="as-head">
+        <div class="as-head-l">
+          <span class="as-orb"></span>
+          <div><b>devbox assistant</b><small id="asQuota">10 queries left</small></div>
+        </div>
+        <div class="as-head-r">
+          <button class="icon-btn xs" id="asPlayGame" title="Play Knight Run" aria-label="Play Knight Run">
+            <svg viewBox="0 0 24 24" class="i"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 10v4M5 12h4"/><circle cx="15" cy="11" r="1"/><circle cx="18" cy="13" r="1"/></svg>
+          </button>
+          <button class="icon-btn xs" id="asReset" title="New chat" aria-label="New chat">
+            <svg viewBox="0 0 24 24" class="i"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-4M4 14a8 8 0 0 0 14 4"/></svg>
+          </button>
+          <button class="icon-btn xs" data-action="assistant" title="Close" aria-label="Close assistant">✕</button>
+        </div>
+      </div>
+      <div class="as-body" id="asBody"></div>
+      <div class="as-game hidden" id="asGame">
+        <div class="game-hud">
+          <span id="gScore">SCORE 0</span>
+          <button class="game-back hidden" id="gBack" title="Back to chat">← CHAT</button>
+          <span id="gBest">BEST 0</span>
+        </div>
+        <canvas id="gCanvas" width="520" height="170"></canvas>
+        <p class="game-hint" id="gHint">CLICK / SPACE TO JUMP · REACH 30 FOR +5 QUERIES</p>
+      </div>
+      <div class="as-input">
+        <textarea id="asInput" rows="1" placeholder="Ask about my work, stack, or ratings…" spellcheck="false"></textarea>
+        <button id="asSend" class="send-btn" aria-label="Send">
+          <svg viewBox="0 0 24 24" class="i"><path d="M3 20l18-8L3 4l3 8z"/></svg>
+        </button>
+      </div>
+      <p class="as-disclaimer">Runs fully offline — answers are drawn from a local index of my résumé.</p>
+    </aside>
+
     <!-- ACTIVITY RAIL (right side — deliberately mirrored) -->
     <nav class="rail" id="rail" aria-label="Panels"></nav>
   </div>
@@ -179,41 +220,6 @@
   </div>
 </div>
 
-<!-- ══ ASSISTANT ══ -->
-<aside class="assistant hidden" id="assistant" aria-label="Assistant">
-  <div class="as-head">
-    <div class="as-head-l">
-      <span class="as-orb"></span>
-      <div><b>devbox assistant</b><small id="asQuota">10 queries left</small></div>
-    </div>
-    <div class="as-head-r">
-      <button class="icon-btn xs" id="asPlayGame" title="Play Knight Run" aria-label="Play Knight Run">
-        <svg viewBox="0 0 24 24" class="i"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 10v4M5 12h4"/><circle cx="15" cy="11" r="1"/><circle cx="18" cy="13" r="1"/></svg>
-      </button>
-      <button class="icon-btn xs" id="asReset" title="New chat" aria-label="New chat">
-        <svg viewBox="0 0 24 24" class="i"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-4M4 14a8 8 0 0 0 14 4"/></svg>
-      </button>
-      <button class="icon-btn xs" data-action="assistant" title="Close" aria-label="Close assistant">✕</button>
-    </div>
-  </div>
-  <div class="as-body" id="asBody"></div>
-  <div class="as-game hidden" id="asGame">
-    <div class="game-hud">
-      <span id="gScore">SCORE 0</span>
-      <button class="game-back hidden" id="gBack" title="Back to chat">← CHAT</button>
-      <span id="gBest">BEST 0</span>
-    </div>
-    <canvas id="gCanvas" width="520" height="170"></canvas>
-    <p class="game-hint" id="gHint">CLICK / SPACE TO JUMP · REACH 30 FOR +5 QUERIES</p>
-  </div>
-  <div class="as-input">
-    <textarea id="asInput" rows="1" placeholder="Ask about my work, stack, or ratings…" spellcheck="false"></textarea>
-    <button id="asSend" class="send-btn" aria-label="Send">
-      <svg viewBox="0 0 24 24" class="i"><path d="M3 20l18-8L3 4l3 8z"/></svg>
-    </button>
-  </div>
-  <p class="as-disclaimer">Runs fully offline — answers are drawn from a local index of my résumé.</p>
-</aside>
 
 <div class="toasts" id="toasts"></div>
 <div class="menu-pop hidden" id="menuPop"></div>
