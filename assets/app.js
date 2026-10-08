@@ -689,7 +689,7 @@ const App = (() => {
     $('sideSearch').addEventListener('input', e => runSearch(e.target.value));
     $('sideSearch').addEventListener('keydown', e => e.stopPropagation());
     $('sideCollapse').addEventListener('click', () => toggleSidebar(false));
-    $('sideResume').addEventListener('click', e => { e.preventDefault(); downloadResume(); });
+    // Resume buttons now use native <a> tags (view + download) — no JS needed.
     $('compactMenuBtn').addEventListener('click', e => { e.stopPropagation(); compactMenu(e.currentTarget); });
 
     $('palInput').addEventListener('input', filterPalette);

@@ -15,7 +15,7 @@ const PROFILE = {
   linkedin: 'https://www.linkedin.com/in/shibang-das',
   codeforces: 'https://codeforces.com/profile/clowntk',
   leetcode: 'https://leetcode.com/u/ShibangDS/',
-  resume: 'Shibang_Das_Resume.pdf',
+  resume: 'assets/Shibang_Das_Resume.pdf',
   blurb: [
     'I build backend systems that stay fast when the traffic is not polite about it.',
     'Right now that means Java and Spring Boot microservices on AWS at Joveo — Kafka for the event flow, PostgreSQL underneath, and a lot of query plans read very carefully.',
