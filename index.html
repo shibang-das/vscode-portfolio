@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Shibang Das — Backend Engineer</title>
+<meta name="description" content="Shibang Das · Backend Engineer @ Joveo · Java / Spring Boot · Distributed Systems · Competitive Programmer (Codeforces Expert)" />
+<meta property="og:title" content="Shibang Das — Backend Engineer" />
+<meta property="og:description" content="Backend Engineer @ Joveo · Java, Spring Boot, Kafka, PostgreSQL · Codeforces Expert" />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d1117'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='monospace' fill='%23f5a524'>&gt;_</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;500;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<div id="boot" class="boot">
+  <pre id="bootLog" class="boot-log"></pre>
+</div>
+
+<div class="workbench" id="workbench">
+
+  <!-- ══ TITLE BAR ══ -->
+  <header class="titlebar" id="titlebar">
+    <div class="tb-left">
+      <span class="tb-logo">&gt;_</span>
+      <nav class="menubar" id="menubar"></nav>
+      <button class="icon-btn only-compact" id="compactMenuBtn" title="Menu" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" class="i"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+    <div class="tb-title" id="tbTitle">shibang-das — devbox</div>
+    <div class="tb-right">
+      <button class="icon-btn" data-action="palette" title="Command palette (Ctrl+K)" aria-label="Command palette">
+        <svg viewBox="0 0 24 24" class="i"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+      <button class="icon-btn" data-action="toggleTerminal" title="Terminal (Ctrl+`)" aria-label="Toggle terminal">
+        <svg viewBox="0 0 24 24" class="i"><path d="M4 17l6-5-6-5M12 19h8"/></svg>
+      </button>
+      <button class="icon-btn" data-action="cycleTheme" title="Cycle theme (Ctrl+Shift+T)" aria-label="Cycle theme">
+        <svg viewBox="0 0 24 24" class="i"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg>
+      </button>
+      <span class="win-ctl"><i class="wc wc-min"></i><i class="wc wc-max"></i><i class="wc wc-close"></i></span>
+    </div>
+  </header>
+
+  <!-- ══ BODY GRID ══ -->
+  <div class="body-grid" id="bodyGrid">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="side-head">
+        <span id="sidePanelTitle">workspace</span>
+        <button class="icon-btn xs" id="sideCollapse" title="Hide sidebar (Ctrl+B)" aria-label="Hide sidebar">
+          <svg viewBox="0 0 24 24" class="i"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+      </div>
+
+      <section class="side-panel" data-panel="explorer">
+        <div class="tree-root">
+          <div class="tree-rootline"><svg viewBox="0 0 24 24" class="i"><path d="M3 7h6l2 3h10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><b>~/shibang-das</b></div>
+          <div id="fileTree" class="tree"></div>
+        </div>
+        <div class="side-foot">
+          <a class="ghost-btn" href="#" id="sideResume">
+            <svg viewBox="0 0 24 24" class="i"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 19h16"/></svg> Résumé.pdf
+          </a>
+        </div>
+      </section>
+
+      <section class="side-panel hidden" data-panel="search">
+        <div class="search-box">
+          <input id="sideSearch" type="text" placeholder="search the workspace…" spellcheck="false" autocomplete="off" />
+        </div>
+        <div id="searchResults" class="search-results"></div>
+      </section>
+
+      <section class="side-panel hidden" data-panel="themes">
+        <p class="panel-note">Colour scheme is stored locally in your browser.</p>
+        <div id="themeList" class="theme-list"></div>
+        <div class="panel-sep"></div>
+        <p class="panel-note">Editor zoom</p>
+        <div class="zoom-row">
+          <button class="ghost-btn sm" data-action="zoomOut">−</button>
+          <span id="zoomVal" class="zoom-val">100%</span>
+          <button class="ghost-btn sm" data-action="zoomIn">+</button>
+          <button class="ghost-btn sm" data-action="zoomReset">reset</button>
+        </div>
+      </section>
+
+      <section class="side-panel hidden" data-panel="links">
+        <div id="linkList" class="link-list"></div>
+      </section>
+
+      <div class="side-resizer" id="sideResizer" title="Drag to resize"></div>
+    </aside>
+
+    <!-- EDITOR COLUMN -->
+    <main class="editor-col">
+      <div class="tabbar" id="tabbar" role="tablist"></div>
+      <div class="breadcrumb" id="breadcrumb"></div>
+
+      <div class="editor-shell">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="editor-scroll" id="editorScroll" tabindex="0">
+          <div class="editor-inner" id="editor"></div>
+        </div>
+        <div class="minimap" id="minimap" aria-hidden="true"></div>
+      </div>
+
+      <!-- TERMINAL -->
+      <section class="terminal collapsed" id="terminal">
+        <div class="term-resizer" id="termResizer"></div>
+        <div class="term-head">
+          <div class="term-tabs">
+            <button class="term-tab active">TERMINAL</button>
+            <button class="term-tab" data-termtab="output">OUTPUT</button>
+            <button class="term-tab" data-termtab="problems">PROBLEMS <i class="badge">0</i></button>
+          </div>
+          <div class="term-actions">
+            <button class="icon-btn xs" data-action="clearTerminal" title="Clear (Ctrl+L)" aria-label="Clear terminal">
+              <svg viewBox="0 0 24 24" class="i"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+            </button>
+            <button class="icon-btn xs" data-action="toggleTerminal" title="Close panel" aria-label="Close terminal">
+              <svg viewBox="0 0 24 24" class="i"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="term-body" id="termBody">
+          <div id="termOut" class="term-out"></div>
+          <div class="term-inputline" id="termInputLine">
+            <span class="term-prompt"><b>shibang</b>@devbox<i>:~$</i></span>
+            <input id="termInput" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Terminal input" />
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ACTIVITY RAIL (right side — deliberately mirrored) -->
+    <nav class="rail" id="rail" aria-label="Panels"></nav>
+  </div>
+
+  <!-- ══ STATUS BAR ══ -->
+  <footer class="statusbar" id="statusbar">
+    <button class="st-item accent" data-action="palette">
+      <svg viewBox="0 0 24 24" class="i"><path d="M6 3v12a3 3 0 0 0 3 3h9M18 3v6"/></svg> main
+    </button>
+    <span class="st-item" id="stFile">home.tsx</span>
+    <span class="st-item hide-sm" id="stCursor">Ln 1, Col 1</span>
+    <span class="st-spacer"></span>
+    <button class="st-item hide-sm" data-action="assistant" id="stAssistant">◆ assistant</button>
+    <span class="st-item hide-sm">UTF-8</span>
+    <button class="st-item hide-sm" data-action="themes" id="stTheme">ember</button>
+    <span class="st-item" id="stClock">--:--</span>
+    <button class="st-item" data-action="shortcuts" title="Keyboard shortcuts">⌘</button>
+  </footer>
+</div>
+
+<!-- ══ COMMAND PALETTE ══ -->
+<div class="overlay hidden" id="paletteOverlay">
+  <div class="palette" role="dialog" aria-label="Command palette">
+    <div class="pal-input-row">
+      <span class="pal-sigil" id="palSigil">›</span>
+      <input id="palInput" placeholder="Type a file name, or &gt; for commands…" spellcheck="false" autocomplete="off" />
+      <kbd>esc</kbd>
+    </div>
+    <div class="pal-list" id="palList"></div>
+    <div class="pal-foot"><kbd>↑↓</kbd> navigate <kbd>↵</kbd> open <kbd>&gt;</kbd> commands</div>
+  </div>
+</div>
+
+<!-- ══ SHORTCUTS ══ -->
+<div class="overlay hidden" id="shortcutsOverlay">
+  <div class="sheet" role="dialog" aria-label="Keyboard shortcuts">
+    <div class="sheet-head"><h3>Keyboard shortcuts</h3><button class="icon-btn xs" data-close-overlay aria-label="Close">✕</button></div>
+    <div class="sheet-body" id="shortcutList"></div>
+  </div>
+</div>
+
+<!-- ══ ASSISTANT ══ -->
+<aside class="assistant hidden" id="assistant" aria-label="Assistant">
+  <div class="as-head">
+    <div class="as-head-l">
+      <span class="as-orb"></span>
+      <div><b>devbox assistant</b><small id="asQuota">10 queries left</small></div>
+    </div>
+    <div class="as-head-r">
+      <button class="icon-btn xs" id="asPlayGame" title="Play Knight Run" aria-label="Play Knight Run">
+        <svg viewBox="0 0 24 24" class="i"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 10v4M5 12h4"/><circle cx="15" cy="11" r="1"/><circle cx="18" cy="13" r="1"/></svg>
+      </button>
+      <button class="icon-btn xs" id="asReset" title="New chat" aria-label="New chat">
+        <svg viewBox="0 0 24 24" class="i"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-4M4 14a8 8 0 0 0 14 4"/></svg>
+      </button>
+      <button class="icon-btn xs" data-action="assistant" title="Close" aria-label="Close assistant">✕</button>
+    </div>
+  </div>
+  <div class="as-body" id="asBody"></div>
+  <div class="as-game hidden" id="asGame">
+    <div class="game-hud">
+      <span id="gScore">SCORE 0</span>
+      <button class="game-back hidden" id="gBack" title="Back to chat">← CHAT</button>
+      <span id="gBest">BEST 0</span>
+    </div>
+    <canvas id="gCanvas" width="520" height="170"></canvas>
+    <p class="game-hint" id="gHint">CLICK / SPACE TO JUMP · REACH 30 FOR +5 QUERIES</p>
+  </div>
+  <div class="as-input">
+    <textarea id="asInput" rows="1" placeholder="Ask about my work, stack, or ratings…" spellcheck="false"></textarea>
+    <button id="asSend" class="send-btn" aria-label="Send">
+      <svg viewBox="0 0 24 24" class="i"><path d="M3 20l18-8L3 4l3 8z"/></svg>
+    </button>
+  </div>
+  <p class="as-disclaimer">Runs fully offline — answers are drawn from a local index of my résumé.</p>
+</aside>
+
+<div class="toasts" id="toasts"></div>
+<div class="menu-pop hidden" id="menuPop"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/views.js"></script>
+<script src="assets/game.js"></script>
+<script src="assets/assistant.js"></script>
+<script src="assets/terminal.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
