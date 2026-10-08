@@ -5,7 +5,7 @@
 
 const KnightRun = (() => {
   const W = 520, H = 170, GROUND = 138, GRAV = 0.62, JUMP = -10.4;
-  const TARGET = 30;
+  const TARGET = 10;
 
   let cv, ctx, hudScore, hudBest, hint;
   let raf = null, running = false, dead = false, started = false;
