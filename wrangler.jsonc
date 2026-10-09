@@ -16,7 +16,13 @@
 
   "observability": {
     "enabled": true
-  }
+  },
+
+  // Opts into per-branch preview URLs — Workers Builds runs
+  // `wrangler preview` for pull requests and refuses without this.
+  // Empty is the whole contract: assets, compatibility settings and
+  // placement stay at the top level and are inherited.
+  "previews": {}
 
   // GEMINI_KEY is a secret, set in the dashboard or with
   // `npx wrangler secret put GEMINI_KEY`. Never put it in this file —
