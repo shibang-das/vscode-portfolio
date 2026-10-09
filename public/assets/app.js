@@ -283,10 +283,6 @@ const App = (() => {
       { icon: '⌘', label: 'Toggle sidebar', sub: 'Ctrl B', run: () => toggleSidebar() },
       { icon: '◆', label: 'Open assistant', sub: 'Ctrl I', run: () => openAssistant(true) },
       { icon: '▶', label: 'Play Knight Run', sub: 'mini-game', run: () => { openAssistant(true); Assistant.playGame(); } },
-      ...Assistant.algorithms().map(a => ({
-        icon: '⟳', label: 'Credit refill: ' + a.label, sub: a.id,
-        run: () => { openAssistant(true); Assistant.setAlgorithm(a.id); }
-      })),
       { icon: '⎈', label: 'Cycle colour theme', sub: 'Ctrl Shift T', run: cycleTheme },
       ...THEMES.map(t => ({ icon: '◑', label: 'Theme: ' + t.label, sub: t.id, run: () => setTheme(t.id) })),
       { icon: '↓', label: 'Download résumé', sub: 'pdf', run: downloadResume },

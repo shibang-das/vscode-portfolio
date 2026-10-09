@@ -4,9 +4,8 @@
    from the local intent index otherwise — or whenever the call fails,
    so the panel never breaks. Either way the answer opens the matching
    file in the editor on the left.
-   Credits are metered by ratelimit.js — four interchangeable rate
-   limiting algorithms — and running out unlocks the Knight Run
-   mini-game, which pays five of them back.
+   Credits are metered by ratelimit.js — a token bucket — and running
+   out unlocks the Knight Run mini-game, which pays five of them back.
    ──────────────────────────────────────────────────────────────── */
 
 const Assistant = (() => {
@@ -185,11 +184,10 @@ const Assistant = (() => {
     const credits = limiter.available();
     const forced = credits <= 0;
     const wait = limiter.msUntilNext();
-    const algo = limiter.describe().label;
 
     els.quota.textContent = forced
       ? `no credits — ${wait === null ? 'beat Knight Run' : 'refill in ' + fmt(wait)}`
-      : `${credits} ${credits === 1 ? 'credit' : 'credits'} · ${algo}` +
+      : `${credits} ${credits === 1 ? 'credit' : 'credits'} left` +
         (wait === null ? '' : ` · +1 in ${fmt(wait)}`);
 
     limiter.save();
@@ -210,14 +208,6 @@ const Assistant = (() => {
     clearTimeout(ticker);
     if (wait === null) return;
     ticker = setTimeout(updateQuota, Math.min(1000, Math.max(250, wait)));
-  }
-
-  function setAlgorithm(id) {
-    if (!limiter.use(id)) return false;
-    const { label, blurb } = limiter.describe();
-    updateQuota();
-    bubble('assistant', `<p>Credits now refill on a <b>${label}</b>.</p><p class="dim-inline">${blurb}</p>`);
-    return true;
   }
 
   function refreshGame() {
@@ -337,13 +327,6 @@ const Assistant = (() => {
       els.send.addEventListener('click', () => send());
       els.reset.addEventListener('click', () => { history = []; welcome(); bubble('assistant', '<p class="dim-inline">Started a new chat.</p>'); });
       els.playBtn.addEventListener('click', toggleGamePanel);
-      /* the credit line is the demo: clicking it walks the four
-         algorithms, which is the fastest way to feel the difference */
-      els.quota.title = 'Switch the credit refill algorithm';
-      els.quota.addEventListener('click', () => {
-        const ids = limiter.ids;
-        setAlgorithm(ids[(ids.indexOf(limiter.id) + 1) % ids.length]);
-      });
       els.gBack.addEventListener('click', backToChat);
       els.input.addEventListener('input', () => {
         els.input.style.height = 'auto';
@@ -359,9 +342,8 @@ const Assistant = (() => {
     gameVisible() { return !els.game.classList.contains('hidden'); },
     playGame() { if (!gameManual && limiter.available() > 0) toggleGamePanel(); },
     stopGame() { if (gameManual) toggleGamePanel(); },
-    algorithms() { return limiter.list(); },
-    algorithm() { return limiter.describe(); },
-    credits() { return { left: limiter.available(), of: limiter.capacity, nextMs: limiter.msUntilNext() }; },
-    setAlgorithm
+    credits() {
+      return { left: limiter.available(), of: limiter.capacity, nextMs: limiter.msUntilNext(), label: limiter.label };
+    }
   };
 })();

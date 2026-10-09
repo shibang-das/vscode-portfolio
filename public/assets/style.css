@@ -684,12 +684,7 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
 .as-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 12px 14px; border-bottom: 1px solid var(--border); }
 .as-head-l { display: flex; align-items: center; gap: 10px; }
 .as-head-l b { display: block; font: 600 13px 'Inter', sans-serif; color: var(--bright); }
-.as-head-l small {
-  font: 400 11px 'JetBrains Mono', monospace; color: var(--dim);
-  cursor: pointer; border-bottom: 1px dotted var(--border2);
-  transition: color .14s, border-color .14s;
-}
-.as-head-l small:hover { color: var(--acc); border-color: var(--acc); }
+.as-head-l small { font: 400 11px 'JetBrains Mono', monospace; color: var(--dim); }
 .as-head-r { display: flex; gap: 2px; }
 .as-orb {
   width: 26px; height: 26px; border-radius: 9px; flex: none;
