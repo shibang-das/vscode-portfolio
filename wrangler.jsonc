@@ -1,0 +1,24 @@
+{
+  // Worker + static assets. Everything under public/ is served by
+  // Cloudflare's asset layer; src/index.js only runs for paths the
+  // assets do not cover — in practice POST /api/chat.
+  "name": "vscode-portfolio",
+  "main": "src/index.js",
+  "compatibility_date": "2025-09-01",
+
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // index.html is the only document; unknown paths fall back to it
+    // rather than a bare 404, so deep links keep working.
+    "not_found_handling": "single-page-application"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+
+  // GEMINI_KEY is a secret, set in the dashboard or with
+  // `npx wrangler secret put GEMINI_KEY`. Never put it in this file —
+  // it is committed to the repo.
+}

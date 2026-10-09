@@ -1,12 +1,12 @@
 /* ────────────────────────────────────────────────────────────────
    llm.js — optional Gemini back-end for the assistant.
 
-   The browser never sees the API key. It posts to /api/chat — a
-   Cloudflare Pages Function (functions/api/chat.js) holding the key as
-   an environment secret and forwarding to Google AI Studio's free tier.
+   The browser never sees the API key. It posts to /api/chat — handled
+   by the Worker in src/index.js, which holds the key as an environment
+   secret and forwards to Google AI Studio's free tier.
 
    Same origin, so there is no CORS to configure. Anywhere the endpoint
-   is missing (local file://, GitHub Pages, a 404) the call fails and
+   is missing (local file://, a static-only host, a 404) the call fails and
    the local intent index in assistant.js answers instead — set
    ENDPOINT to '' to skip the attempt entirely.
    ──────────────────────────────────────────────────────────────── */
