@@ -584,7 +584,7 @@ a.rating:hover { transform: translateY(-2px); text-decoration: none; border-colo
 .badge { font-style: normal; background: var(--bg4); border-radius: 8px; padding: 0 5px; font-size: 9.5px; }
 .term-actions { margin-left: auto; display: flex; gap: 2px; }
 .term-body { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 10px 14px 12px; }
-.term-out { flex: 1; overflow-y: auto; font: 400 12.4px/1.68 'JetBrains Mono', monospace; white-space: pre-wrap; word-break: break-word; }
+.term-out { flex: 1 1 0; min-height: 0; overflow-y: auto; font: 400 12.4px/1.68 'JetBrains Mono', monospace; white-space: pre-wrap; word-break: break-word; }
 .term-out .ok   { color: var(--green); }
 .term-out .warn { color: var(--acc); }
 .term-out .err  { color: var(--red); }
@@ -592,7 +592,7 @@ a.rating:hover { transform: translateY(-2px); text-decoration: none; border-colo
 .term-out .acc  { color: var(--acc2); }
 .term-out .hl   { color: var(--bright); }
 .term-out a { color: var(--acc2); }
-.term-inputline { display: flex; align-items: center; gap: 8px; padding-top: 6px; }
+.term-inputline { display: flex; align-items: center; gap: 8px; padding-top: 6px; flex: none; }
 .term-prompt { font: 400 12.4px 'JetBrains Mono', monospace; color: var(--dim); white-space: nowrap; }
 .term-prompt b { color: var(--green); font-weight: 400; }
 .term-prompt i { color: var(--blue); font-style: normal; }
@@ -692,7 +692,13 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
   animation: spin 6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.as-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+/* min-height: 0 is load-bearing: a column flex item defaults to
+   min-height: auto, so without it the body grows to fit the whole
+   conversation instead of scrolling — shoving the input off-screen and
+   crushing the header. The siblings opt out of shrinking for the same
+   reason. */
+.as-head, .as-input, .as-game, .as-disclaimer { flex: none; }
+.as-body { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
 /* column flex items shrink by default — without this, long answers get squashed
    below their content height and the bubbles visually overlap each other. */
 .as-body > * { flex: 0 0 auto; }
