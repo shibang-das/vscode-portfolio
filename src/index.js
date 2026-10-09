@@ -1,17 +1,21 @@
 /* ────────────────────────────────────────────────────────────────
-   functions/api/chat.js — Cloudflare Pages Function.
+   src/index.js — the Worker behind the portfolio.
 
-   Served at /api/chat on the same origin as the site, so there is no
-   CORS to configure. Holds the Google AI Studio key as an environment
-   secret; the browser only ever sees this endpoint.
+   Static files are served by Cloudflare from the assets binding; this
+   code only runs for paths the assets do not cover, which in practice
+   means POST /api/chat.
 
-   Environment (Pages project → Settings → Variables and Secrets):
+   That endpoint holds the Google AI Studio key as an environment
+   secret and forwards to Gemini's free tier, so the browser never sees
+   a key. Same origin as the site, so there is no CORS to configure.
+
+   Environment (Worker → Settings → Variables and Secrets):
      GEMINI_KEY  secret, required — AI Studio key, free tier only
      MODEL       text,   optional — defaults to gemini-2.0-flash
 
    No paid features anywhere: no streaming, no KV, no durable objects.
    When the free quota runs out Google returns 429, this returns 429,
-   and assets/llm.js falls back to the offline index.
+   and public/assets/llm.js falls back to the offline index.
    ──────────────────────────────────────────────────────────────── */
 
 const MAX_QUESTION = 500;        // characters
@@ -34,7 +38,7 @@ const json = (body, status = 200) =>
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
   });
 
-export async function onRequestPost({ request, env }) {
+async function chat(request, env) {
   if (!env.GEMINI_KEY) return json({ error: 'not configured' }, 503);
 
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -102,3 +106,19 @@ export async function onRequestPost({ request, env }) {
     open: parsed.open && parsed.open !== 'none' ? parsed.open : null
   });
 }
+
+export default {
+  async fetch(request, env) {
+    const { pathname } = new URL(request.url);
+
+    if (pathname === '/api/chat') {
+      if (request.method !== 'POST') return json({ error: 'POST only' }, 405);
+      return chat(request, env);
+    }
+
+    /* Anything else is the site itself. The assets binding handles
+       hashing, caching and content types; falling through to it keeps
+       this Worker out of the hot path for every normal page load. */
+    return env.ASSETS.fetch(request);
+  }
+};

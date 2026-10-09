@@ -6,26 +6,37 @@ A workbench-style personal site for **Shibang Das**. Vanilla JS, no build step, 
 
 ```bash
 cd portfolio
-npx serve .          # or: python -m http.server 5173
+npx wrangler dev     # site + the /api/chat Worker
+# or, static only:
+npx serve public
 ```
 
-Then open the printed URL. (Open `index.html` via `file://` and the résumé HEAD-check will fail — use a server.)
+Then open the printed URL. (Open `index.html` via `file://` and the résumé
+HEAD-check will fail — use a server.) Without wrangler the assistant answers
+from its offline index, since `/api/chat` is not there to call.
 
 ## Layout
 
 ```
 portfolio/
-├── index.html
-├── Shibang_Das_Resume.pdf   ← drop your PDF here (not committed)
-└── assets/
-    ├── style.css      themes, layout, animation
-    ├── data.js        ALL content — edit this first
-    ├── views.js       one renderer per "file" section
-    ├── terminal.js    the shell command loop
-    ├── assistant.js   offline résumé Q&A + query budget
-    ├── game.js        Knight Run (unlocks at zero budget)
-    └── app.js         shell: tabs, tree, palette, menus, keys
+├── wrangler.jsonc          Worker + static-asset config
+├── src/
+│   └── index.js            the Worker — POST /api/chat, else serve public/
+└── public/
+    ├── index.html
+    └── assets/
+        ├── Shibang_Das_Resume.pdf
+        ├── style.css      themes, layout, animation
+        ├── data.js        ALL content — edit this first
+        ├── views.js       one renderer per "file" section
+        ├── terminal.js    the shell command loop
+        ├── assistant.js   résumé Q&A — Gemini, offline index as fallback
+        ├── llm.js         the /api/chat client
+        ├── game.js        Knight Run (unlocks at zero budget)
+        └── app.js         shell: tabs, tree, palette, menus, keys
 ```
+
+Deployment is in [DEPLOY.md](DEPLOY.md).
 
 ## Features
 
@@ -46,14 +57,14 @@ portfolio/
 ## Two things to configure
 
 1. **Résumé** — save your PDF as `portfolio/Shibang_Das_Resume.pdf`, or change
-   `PROFILE.resume` in `assets/data.js`.
-2. **Contact form** — set `FORM_ENDPOINT` at the top of `assets/app.js` to a
+   `PROFILE.resume` in `public/assets/data.js`.
+2. **Contact form** — set `FORM_ENDPOINT` at the top of `public/assets/app.js` to a
    [Formspree](https://formspree.io) (or any JSON POST) URL. Left empty, the form
    falls back to composing a pre-filled email in the visitor's mail client.
 
 ## Editing content
 
-Everything visible comes from `assets/data.js` — `PROFILE`, `EXPERIENCE`,
+Everything visible comes from `public/assets/data.js` — `PROFILE`, `EXPERIENCE`,
 `PROJECTS`, `SKILLS`, `ACHIEVEMENTS`, `LINKS`. Adding a new section means adding a
 `FILES` entry plus a matching renderer in `views.js`; the tree, tabs, palette,
 search index and `ls`/`cat` pick it up automatically.
