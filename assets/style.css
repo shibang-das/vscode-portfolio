@@ -796,6 +796,18 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
     display: flex !important;
   }
   .body-grid.side-open .sidebar { transform: none; }
+  /* Scrim behind the drawer: dims the editor so the overlay reads as
+     a layer, and gives the tap-outside-to-close gesture something to
+     land on. It stops short of the rail (z-index below it) so the
+     panel buttons stay live while the drawer is open. */
+  .body-grid.side-open::before {
+    content: ''; position: fixed;
+    top: var(--chrome-top); bottom: calc(var(--chrome-bottom) + var(--safe-b));
+    left: 0; right: 0; z-index: 140;
+    background: rgba(0,0,0,.45); backdrop-filter: blur(1px);
+    animation: fade .18s ease;
+  }
+  .rail { position: relative; z-index: 160; }
   .side-resizer { display: none; }
   .gutter { display: none; }
   .editor-inner { padding: 20px 18px 80px; }
