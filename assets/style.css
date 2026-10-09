@@ -785,6 +785,31 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
   button, a, input, textarea, select, .tab, .tree-file, .as-sug { touch-action: manipulation; }
 }
 
+/* Touch has no hover, so lift-on-hover styles either never fire or —
+   worse — stick after a tap until you touch something else. Trade them
+   for press feedback, and size the targets for a fingertip. */
+@media (hover: none) {
+  .chip:hover, .btn:hover, .proj:hover, .tl-item:hover,
+  a.rating:hover, .as-sug:hover, .ghost-btn:hover { transform: none; }
+  .btn:active, .chip:active, .as-sug:active, .ghost-btn:active { opacity: .7; }
+  .tree-file:active, .pal-item:active, .menu-item:active, .cchan:active { background: var(--sel); }
+  /* the close affordance is hover-gated on desktop; on touch it would
+     never appear, so every open tab shows one */
+  .tab .x { opacity: .55; }
+}
+
+@media (pointer: coarse) {
+  .icon-btn { width: 34px; height: 32px; }
+  .icon-btn.xs { width: 30px; height: 30px; }
+  .rail button { width: 40px; height: 40px; }
+  .st-item { padding: 3px 10px; }
+  .tab { padding: 0 8px 0 13px; min-height: 42px; }
+  .tab .x { width: 24px; height: 24px; }
+  .tree-file { padding: 8px; }
+  .theme-opt, .sr { padding: 10px; }
+  .pal-item { padding: 11px; }
+}
+
 @media (max-width: 860px) {
   .menubar { display: none; }
   .only-compact { display: inline-flex; }
@@ -839,6 +864,17 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
   .tb-title { display: none; }
   .toasts { right: 12px; left: 12px; bottom: 34px; }
 }
+/* Landscape phones: almost no vertical room, so drop the chrome that
+   only orients you and keep the content. */
+@media (max-height: 460px) and (orientation: landscape) {
+  .breadcrumb { display: none; }
+  .editor-inner { padding-top: 14px; padding-bottom: 40px; }
+  .terminal { height: min(var(--term-h, 240px), 62dvh); }
+  .overlay { padding-top: 4vh; }
+  .pal-list { max-height: 40vh; }
+  .sheet-body { max-height: 52vh; }
+}
+
 @media (max-width: 520px) {
   :root { --chrome-top: 36px; }
   .hero-name { font-size: 36px; }
@@ -862,5 +898,5 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
   .log-line { flex-wrap: wrap; gap: 6px; padding: 7px 10px; white-space: normal; }
   .boot-log { font-size: 10.5px; line-height: 1.8; }
   .rail { padding: 6px 0; }
-  .rail button { width: 30px; height: 30px; }
+  .rail button { width: 34px; height: 34px; }
 }
