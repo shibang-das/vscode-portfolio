@@ -772,6 +772,19 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
   .skills-wrap, .contact-wrap { grid-template-columns: 1fr; }
   .minimap { display: none; }
 }
+/* Touch devices: iOS zooms the viewport whenever a focused field is
+   under 16px, and the zoom never fully unwinds. Everything typeable
+   goes to 16px — the monospace look survives, the jump does not. */
+@media (pointer: coarse) {
+  .search-box input, .cf-row input, .cf-row textarea,
+  .pal-input-row input, #termInput, #asInput {
+    font-size: 16px;
+  }
+  .cf-row textarea { min-height: 140px; }
+  /* no 300ms double-tap delay on anything interactive */
+  button, a, input, textarea, select, .tab, .tree-file, .as-sug { touch-action: manipulation; }
+}
+
 @media (max-width: 860px) {
   .menubar { display: none; }
   .only-compact { display: inline-flex; }
