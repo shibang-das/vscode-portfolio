@@ -4,15 +4,14 @@
    from the local intent index otherwise — or whenever the call fails,
    so the panel never breaks. Either way the answer opens the matching
    file in the editor on the left.
-   A query budget mirrors a real rate limit; running out unlocks the
-   Knight Run mini-game, which can win the budget back.
+   Credits are metered by ratelimit.js — four interchangeable rate
+   limiting algorithms — and running out unlocks the Knight Run
+   mini-game, which pays five of them back.
    ──────────────────────────────────────────────────────────────── */
 
 const Assistant = (() => {
-  const QUOTA_KEY = 'devbox.quota';
-  const START_QUOTA = 10;
-  let quota = START_QUOTA;
-  let els = {}, busy = false, gameMounted = false, gameManual = false;
+  const limiter = RateLimit.create();
+  let els = {}, busy = false, gameMounted = false, gameManual = false, ticker = null;
   let history = [];   // last few turns, for LLM follow-up questions
 
   /* ── intent index ─────────────────────────────────────────── */
@@ -177,23 +176,52 @@ const Assistant = (() => {
     if (gameSug) gameSug.addEventListener('click', toggleGamePanel);
   }
 
+  const fmt = ms => {
+    const s = Math.ceil(ms / 1000);
+    return s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${s}s`;
+  };
+
   function updateQuota() {
-    const forced = quota <= 0;
-    els.quota.textContent = quota > 0
-      ? `${quota} ${quota === 1 ? 'query' : 'queries'} left`
-      : 'out of queries — beat Knight Run';
-    localStorage.setItem(QUOTA_KEY, quota);
-    els.send.disabled = forced;
+    const credits = limiter.available();
+    const forced = credits <= 0;
+    const wait = limiter.msUntilNext();
+    const algo = limiter.describe().label;
+
+    els.quota.textContent = forced
+      ? `no credits — ${wait === null ? 'beat Knight Run' : 'refill in ' + fmt(wait)}`
+      : `${credits} ${credits === 1 ? 'credit' : 'credits'} · ${algo}` +
+        (wait === null ? '' : ` · +1 in ${fmt(wait)}`);
+
+    limiter.save();
+    els.send.disabled = forced || busy;
     els.input.disabled = forced;
-    els.input.placeholder = quota > 0
-      ? 'Ask about my work, stack, or ratings…'
-      : 'Budget spent — score 10 in Knight Run for 5 more.';
+    els.input.placeholder = forced
+      ? 'Out of credits — wait for the refill, or score 10 in Knight Run.'
+      : 'Ask about my work, stack, or ratings…';
     els.playBtn.classList.toggle('active', forced || gameManual);
     refreshGame();
+    scheduleTick(wait);
+  }
+
+  /* Credits accrue on a clock, so the panel has to redraw itself even
+     when nobody touches it — otherwise the counter lies until the next
+     keystroke. One timer, only while something is actually pending. */
+  function scheduleTick(wait) {
+    clearTimeout(ticker);
+    if (wait === null) return;
+    ticker = setTimeout(updateQuota, Math.min(1000, Math.max(250, wait)));
+  }
+
+  function setAlgorithm(id) {
+    if (!limiter.use(id)) return false;
+    const { label, blurb } = limiter.describe();
+    updateQuota();
+    bubble('assistant', `<p>Credits now refill on a <b>${label}</b>.</p><p class="dim-inline">${blurb}</p>`);
+    return true;
   }
 
   function refreshGame() {
-    const forced = quota <= 0;
+    const forced = limiter.available() <= 0;
     const show = forced || gameManual;
     els.game.classList.toggle('hidden', !show);
     els.gBack.classList.toggle('hidden', !gameManual || forced);
@@ -201,7 +229,11 @@ const Assistant = (() => {
       gameMounted = true;
       KnightRun.mount(els.canvas,
         { score: els.gScore, best: els.gBest, hint: els.gHint },
-        n => { quota += n; updateQuota(); bubble('assistant', `<p class="dim-inline"><span class="ok">+${n} queries</span> unlocked by playing Knight Run.</p>`); });
+        n => {
+          limiter.grant(n);
+          updateQuota();
+          bubble('assistant', `<p class="dim-inline"><span class="ok">+${n} credits</span> unlocked by playing Knight Run.</p>`);
+        });
     }
   }
 
@@ -211,7 +243,7 @@ const Assistant = (() => {
   }
 
   function backToChat() {
-    if (quota <= 0) { bubble('assistant', '<p class="err">Score 10 to unlock more queries first.</p>'); return; }
+    if (limiter.available() <= 0) { bubble('assistant', '<p class="err">Score 10 to unlock more credits first.</p>'); return; }
     gameManual = false;
     updateQuota();
   }
@@ -238,13 +270,18 @@ const Assistant = (() => {
   async function send(text) {
     const q = (text || els.input.value).trim();
     if (!q || busy) return;
-    if (quota <= 0) { bubble('assistant', '<p class="err">Query budget spent — beat Knight Run for more.</p>'); return; }
+    if (!limiter.tryConsume()) {
+      const wait = limiter.msUntilNext();
+      bubble('assistant', `<p class="err">Out of credits${wait === null ? '' : ` — one returns in ${fmt(wait)}`}. Knight Run pays 5 instantly.</p>`);
+      updateQuota();
+      return;
+    }
 
     // if (els.body.querySelector('.as-welcome')) els.body.innerHTML = '';
     els.input.value = '';
     els.input.style.height = 'auto';
     bubble('user', escapeHtml(q));
-    quota--; updateQuota();
+    updateQuota();
 
     busy = true; els.send.disabled = true;
     const t = bubble('assistant', `<span class="typing"><i></i><i></i><i></i></span>`);
@@ -269,7 +306,7 @@ const Assistant = (() => {
       t.querySelector('.bubble').innerHTML = reply.html;
       reveal(reply.open);
       els.body.scrollTop = els.body.scrollHeight;
-      busy = false; els.send.disabled = quota <= 0;
+      busy = false; updateQuota();
     }, wait);
   }
 
@@ -293,14 +330,20 @@ const Assistant = (() => {
         gBack: document.getElementById('gBack'),
         playBtn: document.getElementById('asPlayGame')
       };
-      const stored = localStorage.getItem(QUOTA_KEY);
-      quota = stored === null ? START_QUOTA : Math.max(0, +stored);
+      limiter.load();
 
       welcome(); updateQuota();
 
       els.send.addEventListener('click', () => send());
       els.reset.addEventListener('click', () => { history = []; welcome(); bubble('assistant', '<p class="dim-inline">Started a new chat.</p>'); });
       els.playBtn.addEventListener('click', toggleGamePanel);
+      /* the credit line is the demo: clicking it walks the four
+         algorithms, which is the fastest way to feel the difference */
+      els.quota.title = 'Switch the credit refill algorithm';
+      els.quota.addEventListener('click', () => {
+        const ids = limiter.ids;
+        setAlgorithm(ids[(ids.indexOf(limiter.id) + 1) % ids.length]);
+      });
       els.gBack.addEventListener('click', backToChat);
       els.input.addEventListener('input', () => {
         els.input.style.height = 'auto';
@@ -312,9 +355,13 @@ const Assistant = (() => {
       });
     },
     ask(q) { send(q); },
-    focus() { if (quota > 0) els.input.focus(); },
+    focus() { if (limiter.available() > 0) els.input.focus(); },
     gameVisible() { return !els.game.classList.contains('hidden'); },
-    playGame() { if (!gameManual && quota > 0) toggleGamePanel(); },
-    stopGame() { if (gameManual) toggleGamePanel(); }
+    playGame() { if (!gameManual && limiter.available() > 0) toggleGamePanel(); },
+    stopGame() { if (gameManual) toggleGamePanel(); },
+    algorithms() { return limiter.list(); },
+    algorithm() { return limiter.describe(); },
+    credits() { return { left: limiter.available(), of: limiter.capacity, nextMs: limiter.msUntilNext() }; },
+    setAlgorithm
   };
 })();

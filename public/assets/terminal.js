@@ -101,6 +101,30 @@ const Term = (() => {
         line('<span class="ok">→</span> sent to the assistant panel');
       }
     },
+    ratelimit: {
+      desc: 'inspect or switch the chat credit algorithm',
+      run(args) {
+        const algos = Assistant.algorithms();
+        if (!args.length) {
+          const cur = Assistant.algorithm();
+          const c = Assistant.credits();
+          line(`<span class="hl">credit meter</span> — <span class="acc">${c.left}</span><span class="dim">/${c.of} credits</span>`);
+          line(`<span class="warn">active</span>    ${cur.label}`);
+          line(`<span class="warn">refill</span>    ${c.nextMs === null ? '<span class="dim">full</span>' : '+1 in ' + Math.ceil(c.nextMs / 1000) + 's'}`);
+          line('');
+          algos.forEach(a => line(
+            `  <span class="${a.id === cur.id ? 'acc' : 'dim'}">${a.id.padEnd(14)}</span><span class="dim">${esc(a.blurb)}</span>`));
+          line('');
+          return line('<span class="dim">switch with:</span> <span class="acc">ratelimit token-bucket</span>');
+        }
+        const want = args[0].toLowerCase();
+        if (!algos.some(a => a.id === want))
+          return line(`<span class="err">ratelimit: unknown algorithm '${esc(args[0])}'</span>`);
+        App.openAssistant(true);
+        Assistant.setAlgorithm(want);
+        line(`<span class="ok">credit meter →</span> ${want}`);
+      }
+    },
     game: {
       desc: 'play Knight Run in the assistant panel',
       run() {

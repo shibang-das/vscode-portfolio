@@ -31,6 +31,7 @@ portfolio/
         ├── views.js       one renderer per "file" section
         ├── terminal.js    the shell command loop
         ├── assistant.js   résumé Q&A — Gemini, offline index as fallback
+        ├── ratelimit.js   the credit meter — 4 rate limiting algorithms
         ├── llm.js         the /api/chat client
         ├── game.js        Knight Run (unlocks at zero budget)
         └── app.js         shell: tabs, tree, palette, menus, keys
@@ -48,8 +49,9 @@ Deployment is in [DEPLOY.md](DEPLOY.md).
 | Workspace search across all content | rail → Search |
 | 6 colour themes, persisted | rail → Appearance, or `theme moss` |
 | Editor zoom, resizable sidebar & terminal | `Ctrl +/−/0`, drag handles |
-| Offline assistant with query budget | rail → ◆, `Ctrl I` |
-| Knight Run mini-game (score 30 → +5 queries) | appears when budget hits 0 |
+| Assistant — Gemini, offline index as fallback | rail → ◆, `Ctrl I` |
+| Credit meter with 4 switchable rate limiters | click the credit line, or `ratelimit` |
+| Knight Run mini-game (score 10 → +5 credits) | appears when credits hit 0 |
 | Contact form with validation | `contact.sh` |
 | Full keyboard control + shortcut sheet | `?` |
 | Mobile layout (drawer sidebar, no chrome) | ≤860px |
