@@ -476,7 +476,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: .92em; color: var(--
 .tl-points li:last-child { margin-bottom: 0; }
 
 /* ── projects ───────────────────────────────────────────────── */
-.proj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+.proj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); gap: 16px; }
 .proj {
   border: 1px solid var(--border); border-radius: 14px; background: var(--bg2);
   padding: 20px; position: relative; overflow: hidden; transition: transform .2s, border-color .2s;
@@ -493,7 +493,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: .92em; color: var(--
 .proj-points li::before { content: '·'; position: absolute; left: 4px; color: var(--acc); font-weight: 700; }
 .proj-stack { margin-bottom: 12px; display: flex; flex-wrap: wrap; }
 .proj-foot { display: flex; gap: 8px; align-items: center; }
-.mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; }
 .mini { padding: 14px 16px; border: 1px dashed var(--border2); border-radius: 11px; }
 .mini b { display: block; color: var(--bright); font-size: 13.5px; margin-bottom: 5px; }
 .mini p { margin: 0; font-size: 12.5px; color: var(--dim); line-height: 1.65; }
@@ -527,7 +527,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: .92em; color: var(--
 .log-msg { color: var(--text); white-space: normal; }
 .log-msg b { color: var(--bright); }
 .cursor-blk { display: inline-block; width: 7px; height: 13px; background: var(--acc); vertical-align: -2px; animation: blink 1.1s steps(2) infinite; }
-.rating-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 22px; }
+.rating-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 14px; margin-top: 22px; }
 .rating {
   display: flex; flex-direction: column; gap: 3px; padding: 18px;
   border: 1px solid var(--border); border-left: 3px solid var(--acc); border-radius: 10px;
@@ -826,7 +826,24 @@ button.st-item:hover { background: var(--bg4); color: var(--bright); }
   :root { --chrome-top: 36px; }
   .hero-name { font-size: 36px; }
   .editor-inner { padding: 16px 14px 70px; }
-  .log { font-size: 11px; }
+
+  /* Two-up rows that only work with room to spare: stack them rather
+     than letting the right-hand half squeeze to nothing. */
+  .edu-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .tl-head { flex-direction: column; gap: 6px; }
+  .proj-top { flex-wrap: wrap; gap: 4px; }
+  .hero-side, .id-card { max-width: none; }
+  .stat-strip { margin-top: 30px; }
+  .stat { padding: 13px 10px; }
+  .stat b { font-size: 19px; }
+  .sub-h { margin-top: 32px; }
+  .md h1 { font-size: 23px; }
+
+  /* The log is a terminal pastiche — on a phone, readable beats
+     authentic, so lines wrap instead of scrolling sideways. */
+  .log { font-size: 11px; overflow-x: visible; }
+  .log-line { flex-wrap: wrap; gap: 6px; padding: 7px 10px; white-space: normal; }
+  .boot-log { font-size: 10.5px; line-height: 1.8; }
   .rail { padding: 6px 0; }
   .rail button { width: 30px; height: 30px; }
 }
