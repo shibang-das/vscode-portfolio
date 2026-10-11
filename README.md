@@ -30,7 +30,7 @@ portfolio/
         ├── data.js        ALL content — edit this first
         ├── views.js       one renderer per "file" section
         ├── terminal.js    the shell command loop
-        ├── assistant.js   résumé Q&A — Gemini, offline index as fallback
+        ├── assistant.js   résumé Q&A — model-backed, offline index as fallback
         ├── llm.js         the /api/chat client
         ├── game.js        Knight Run (unlocks at zero budget)
         └── app.js         shell: tabs, tree, palette, menus, keys
