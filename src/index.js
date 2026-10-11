@@ -18,7 +18,7 @@
    Environment (Worker → Settings → Variables and Secrets):
      GROQ_KEY  secret, required — console.groq.com key, free tier
      MODEL     text,   optional — tried first, then known-good
-               fallbacks; see console.groq.com/docs/models
+               fallbacks, then whatever /v1/models reports as live
 
    No paid features anywhere: no streaming, no KV, no durable objects.
    When the free quota runs out Groq returns 429, this returns 429,
@@ -37,6 +37,41 @@ function rateLimited(ip, now) {
   hits.set(ip, seen);
   if (hits.size > 5000) hits.clear();          // crude cap, keeps memory flat
   return seen.length > MAX_PER_WINDOW;
+}
+
+/* Model ids are retired without warning — both of the ones this started
+   with were gone inside a release. Rather than hardcode a list that
+   rots, ask the provider what the key can actually call, and remember
+   it for the life of the isolate. */
+let discovered = null;
+
+const UNSUITABLE = /whisper|tts|embed|guard|moderation|vision|audio/i;
+
+async function discoverModel(env) {
+  if (discovered) return discovered;
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { Authorization: `Bearer ${env.GROQ_KEY}` }
+    });
+    if (!res.ok) return null;
+    const list = (await res.json())?.data;
+    if (!Array.isArray(list)) return null;
+
+    /* Anything that is not a chat model would fail the same way a dead
+       id does, so filter those out rather than discovering a
+       speech-to-text model and calling it hopefully. */
+    const chat = list
+      .map(m => m && m.id)
+      .filter(id => typeof id === 'string' && !UNSUITABLE.test(id));
+    if (!chat.length) return null;
+
+    /* Prefer an instruction-tuned general model; fall back to whatever
+       is left rather than giving up. */
+    discovered = chat.find(id => /llama|qwen|gemma|mixtral|gpt/i.test(id)) || chat[0];
+    return discovered;
+  } catch {
+    return null;
+  }
 }
 
 const json = (body, status = 200) =>
@@ -110,6 +145,27 @@ async function chat(request, env) {
     }
     if (upstream.ok) break;
     if (upstream.status !== 404) break;        // only a missing model is worth another candidate
+  }
+
+  /* Every candidate was a dead id. Ask the provider for a live one and
+     try that before giving up — this is the case that otherwise needs a
+     redeploy every time a model is retired. */
+  if (upstream && upstream.status === 404) {
+    const found = await discoverModel(env);
+    if (found && !candidates.includes(found)) {
+      candidates.push(found);
+      try {
+        upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.GROQ_KEY}` },
+          body: buildPayload(found, true)
+        });
+        if (upstream.ok) served = found + ' (discovered)';
+        else detail = (await upstream.text().catch(() => '')).slice(0, 300);
+      } catch {
+        return json({ error: 'upstream unreachable' }, 502);
+      }
+    }
   }
 
   if (!upstream || !upstream.ok) {
