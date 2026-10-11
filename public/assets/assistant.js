@@ -26,6 +26,24 @@ const Assistant = (() => {
       open: 'about'
     },
     {
+      /* "is he good for X?" is a judgement, not a lookup. The index
+         cannot judge — so it answers the shape of the question with
+         the evidence that bears on it, and says which it is. */
+      k: ['good for', 'good fit', 'right fit', 'fit for', 'suitable', 'suited',
+          'would he be', 'is he good', 'can he handle', 'strong enough', 'ready for',
+          'why should', 'why hire', 'convince me', 'what makes him'],
+      w: 1.6,
+      a: () => `<p>Fair question — here's the evidence rather than a verdict:</p>
+        <ul>
+          <li><b>Latency under real traffic</b> — cut API latency on Joveo's Unified Analytics by reshaping queries, not by stacking caches.</li>
+          <li><b>Algorithms, seriously</b> — Codeforces Expert (1708), LeetCode Knight (1977), 1500+ problems, C++ as the first language.</li>
+          <li><b>Ships services</b> — Java/Spring Boot microservices on AWS with Kafka and PostgreSQL, plus FastAPI and Node elsewhere.</li>
+          <li><b>Systems foundations</b> — OS, DBMS, networking, and a BTech+MTech from IIT (BHU).</li>
+        </ul>
+        <p>Name the role's stack and I'll point at the closest work — or email <span class="kv">${PROFILE.email}</span> and ask him directly.</p>`,
+      open: 'about'
+    },
+    {
       k: ['hire', 'hiring', 'recruit', 'open to work', 'looking for', 'opportunit', 'opening',
           'vacancy', 'notice period', 'relocat', 'full time', 'full-time', 'join us', 'offer',
           'can i hire', 'are you available', 'availab'],
