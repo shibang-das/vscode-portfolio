@@ -1,9 +1,9 @@
 /* ────────────────────────────────────────────────────────────────
-   llm.js — optional Gemini back-end for the assistant.
+   llm.js — optional model back-end for the assistant.
 
    The browser never sees the API key. It posts to /api/chat — handled
    by the Worker in src/index.js, which holds the key as an environment
-   secret and forwards to Google AI Studio's free tier.
+   secret and forwards to Groq's free tier.
 
    Same origin, so there is no CORS to configure. Anywhere the endpoint
    is missing (local file://, a static-only host, a 404) the call fails and
@@ -54,7 +54,8 @@ Rules:
 - Answer ONLY from the résumé below. If it does not cover something, say so plainly and point at what you can cover. Never invent employers, dates, numbers or ratings.
 - Speak about Shibang in the third person. Be concise: two or three short sentences, or a short list. No preamble, no sign-off.
 - Plain text only. **bold** is allowed for emphasis; no other markup, no markdown headings, no code fences.
-- Set "open" to the workspace file most relevant to your answer, so the site can open it next to the chat. Use exactly one of: home, about, experience, projects, skills, achievements, contact, readme, resume. Use "resume" when asked for the CV/PDF. Use null when nothing fits.
+- Reply with a single JSON object and nothing else: {"answer": "<your reply>", "open": "<file>"}.
+- "open" is the workspace file most relevant to your answer, so the site can open it beside the chat. Use exactly one of: home, about, experience, projects, skills, achievements, contact, readme, resume, none. Use "resume" when asked for the CV/PDF, and "none" when nothing fits.
 
 RÉSUMÉ
 ${'${CONTEXT}'}`;

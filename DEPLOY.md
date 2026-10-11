@@ -11,9 +11,14 @@ wrangler.jsonc the config that ties the two together
 Cloudflare builds and deploys on every push to the connected branch. The free
 plan covers all of it with no card.
 
-**Nothing here can generate a bill.** The Google AI Studio key is free-tier only
-and has no billing account attached. The Workers free plan has no overage
-billing. When either limit is hit the assistant falls back to its offline index.
+**Nothing here can generate a bill.** The Groq key is free-tier only and needs no
+card. The Workers free plan has no overage billing. When either limit is hit the
+assistant falls back to its offline index.
+
+> Gemini was the original upstream and had to go: its free tier geofences by
+> caller location, and a Worker egresses from whichever Cloudflare edge is
+> nearest the visitor — so it answered `FAILED_PRECONDITION: User location is
+> not supported`. Groq has no such restriction and is faster.
 
 ## 1. Connect the repo
 
@@ -27,38 +32,40 @@ under **Settings → Build → Deploy command**.
 
 Live at `https://vscode-portfolio.<subdomain>.workers.dev`.
 
-## 2. Add the Gemini key
+## 2. Add the Groq key
 
 Without this the site still works — the assistant just answers from its offline
 keyword index instead of Gemini.
 
-1. Get a key at <https://aistudio.google.com/apikey> → **Create API key** →
-   pick a project with **no billing account**. Copy it; never commit it.
+1. Get a key at <https://console.groq.com/keys> → sign in → **Create API Key**.
+   Free tier, no card. Copy it; never commit it.
 2. Worker → **Settings** → **Variables and Secrets** → **Add**:
-   - `GEMINI_KEY` — type **Secret** — the key
+   - `GROQ_KEY` — type **Secret** — the key
    - `MODEL` — type **Text**, optional — tried first, then known-good
-     fallbacks. Model ids get retired; list what your key can call with
-     `GET https://generativelanguage.googleapis.com/v1beta/models`
+     fallbacks (`llama-3.3-70b-versatile`, then `llama-3.1-8b-instant`).
+     Current ids: <https://console.groq.com/docs/models>
 3. **Redeploy** (Deployments → latest → Retry). Variables only reach the Worker
    on a fresh deploy.
 
-Or from the terminal: `npx wrangler secret put GEMINI_KEY`.
+Or from the terminal: `npx wrangler secret put GROQ_KEY`.
+
+If you previously set `GEMINI_KEY`, delete it — it is no longer read.
 
 ## 3. Check it
 
 Open the site, press `Ctrl+I`, and ask something the keyword index could never
 answer — *"would he be a good fit for a payments team?"*. A specific, reasoned
-answer means Gemini is live; a list of topics means it fell back.
+answer means the model is live; a generic list of topics means it fell back.
 
 If it fell back, open DevTools → Network → the `/api/chat` call:
 
 | Status | Cause |
 |---|---|
 | 404 | Worker not handling the route — check `main` and `name` in `wrangler.jsonc` |
-| 503 | `GEMINI_KEY` missing — add it, then redeploy |
+| 503 | `GROQ_KEY` missing — add it, then redeploy |
 | 429 | Rate limit, yours or Google's — expected under load, harmless |
-| 400 | Key rejected — regenerate it in AI Studio |
-| 404 | No model matched. The response lists what it `tried` and carries Google's own `detail`; find a valid id with `GET https://generativelanguage.googleapis.com/v1beta/models` and the same `x-goog-api-key` header, then set `MODEL` |
+| 400 | Request rejected — the response carries the upstream `detail` naming the field |
+| 404 | No model matched. The response lists what it `tried`; pick a current id from <https://console.groq.com/docs/models> and set `MODEL` |
 
 The Worker rate-limits to 8 requests per minute per IP and caps questions at 500
 characters, so a stranger cannot drain the free quota.
@@ -69,13 +76,13 @@ characters, so a stranger cannot drain the free quota.
 npx wrangler dev
 ```
 
-Serves `public/` with the Worker at `/api/chat`. Put `GEMINI_KEY=...` in a
+Serves `public/` with the Worker at `/api/chat`. Put `GROQ_KEY=...` in a
 `.dev.vars` file — it is gitignored. Without wrangler, opening
 `public/index.html` directly also works; the API call 404s and the offline index
 answers.
 
 ## Turning the AI off
 
-Delete `GEMINI_KEY` and redeploy, or set `ENDPOINT = ''` in
+Delete `GROQ_KEY` and redeploy, or set `ENDPOINT = ''` in
 [`public/assets/llm.js`](public/assets/llm.js). Either way the assistant reverts
 to the offline index with no other changes.

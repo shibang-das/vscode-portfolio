@@ -5,18 +5,23 @@
    code only runs for paths the assets do not cover, which in practice
    means POST /api/chat.
 
-   That endpoint holds the Google AI Studio key as an environment
-   secret and forwards to Gemini's free tier, so the browser never sees
-   a key. Same origin as the site, so there is no CORS to configure.
+   That endpoint holds the Groq API key as an environment secret and
+   forwards to Groq's free tier, so the browser never sees a key. Same
+   origin as the site, so there is no CORS to configure.
+
+   Groq rather than Gemini for one reason: Gemini's free tier geofences
+   by caller location, and a Worker egresses from whichever Cloudflare
+   edge is nearest the visitor — so it answered
+   FAILED_PRECONDITION: User location is not supported. Groq has no
+   such restriction, is free without a card, and is faster.
 
    Environment (Worker → Settings → Variables and Secrets):
-     GEMINI_KEY  secret, required — AI Studio key, free tier only
-     MODEL       text,   optional — tried first, then known-good
-                 fallbacks; list what your key can call with
-                 GET /v1beta/models and the same key header
+     GROQ_KEY  secret, required — console.groq.com key, free tier
+     MODEL     text,   optional — tried first, then known-good
+               fallbacks; see console.groq.com/docs/models
 
    No paid features anywhere: no streaming, no KV, no durable objects.
-   When the free quota runs out Google returns 429, this returns 429,
+   When the free quota runs out Groq returns 429, this returns 429,
    and public/assets/llm.js falls back to the offline index.
    ──────────────────────────────────────────────────────────────── */
 
@@ -41,7 +46,7 @@ const json = (body, status = 200) =>
   });
 
 async function chat(request, env) {
-  if (!env.GEMINI_KEY) return json({ error: 'not configured' }, 503);
+  if (!env.GROQ_KEY) return json({ error: 'not configured' }, 503);
 
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   if (rateLimited(ip, Date.now())) return json({ error: 'rate limited' }, 429);
@@ -53,79 +58,79 @@ async function chat(request, env) {
   if (!question) return json({ error: 'empty question' }, 400);
 
   const history = Array.isArray(body.history) ? body.history.slice(-6) : [];
-  const contents = [
+  const messages = [
+    { role: 'system', content: String(body.system || '').slice(0, 20000) },
     ...history
       .filter(m => m && typeof m.text === 'string')
-      .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.text.slice(0, 1000) }] })),
-    { role: 'user', parts: [{ text: question }] }
+      .map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text.slice(0, 1000) })),
+    { role: 'user', content: question }
   ];
 
-  /* Model ids get retired, and a retired id answers 404 — which used
-     to surface as a bare "upstream 404" with no hint that the name was
-     the problem. Try the configured model first, then known-good
-     fallbacks, and report what actually served. */
-  const candidates = [env.MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']
+  /* Model ids get retired, and a retired id answers 404. Try the
+     configured model first, then known-good fallbacks, and report what
+     actually served. */
+  const candidates = [env.MODEL, 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
     .filter(Boolean)
     .filter((m, i, a) => a.indexOf(m) === i);
 
-  const payload = JSON.stringify({
-    systemInstruction: { parts: [{ text: String(body.system || '').slice(0, 20000) }] },
-    contents,
-    generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 400,
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'object',
-        properties: {
-          answer: { type: 'string' },
-          open: {
-            type: 'string',
-            enum: ['home', 'about', 'experience', 'projects', 'skills',
-                   'achievements', 'contact', 'readme', 'resume', 'none']
-          }
-        },
-        required: ['answer', 'open']
-      }
-    }
+  /* JSON mode is the most fragile part of the request — a model that
+     does not support it rejects the whole call — so it is a flag that
+     can be dropped on a retry. The system prompt asks for the shape in
+     words too, so an unconstrained answer still parses. */
+  const buildPayload = (model, strict) => JSON.stringify({
+    model,
+    messages,
+    temperature: 0.3,
+    max_tokens: 400,
+    ...(strict ? { response_format: { type: 'json_object' } } : {})
   });
 
   let upstream, served, detail = '';
   for (const candidate of candidates) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent`;
-    try {
-      upstream = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
-        body: payload
-      });
-    } catch {
-      return json({ error: 'upstream unreachable' }, 502);
-    }
-    if (upstream.ok) { served = candidate; break; }
+    for (const strict of [true, false]) {
+      try {
+        upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${env.GROQ_KEY}`
+          },
+          body: buildPayload(candidate, strict)
+        });
+      } catch {
+        return json({ error: 'upstream unreachable' }, 502);
+      }
+      if (upstream.ok) { served = strict ? candidate : candidate + ' (no json mode)'; break; }
 
-    /* Keep Google's own message — "models/x is not found for API
-       version v1beta" names the fault in one line, where a bare status
-       code sends you looking in the wrong place. */
-    detail = (await upstream.text().catch(() => '')).slice(0, 300);
-    if (upstream.status !== 404) break;        // only a missing model is worth retrying
+      /* Keep the upstream's own message. "model X does not exist" or
+         "json_object not supported" names the fault in one line, where
+         a bare status code sends you looking in the wrong place. */
+      detail = (await upstream.text().catch(() => '')).slice(0, 300);
+      if (upstream.status !== 400) break;      // only a rejected request is worth re-shaping
+    }
+    if (upstream.ok) break;
+    if (upstream.status !== 404) break;        // only a missing model is worth another candidate
   }
 
   if (!upstream || !upstream.ok) {
     const status = upstream ? upstream.status : 502;
-    return json({
-      error: 'upstream ' + status,
-      tried: candidates,
-      detail: detail || undefined
-    }, status);
+    return json({ error: 'upstream ' + status, tried: candidates, detail: detail || undefined }, status);
   }
 
   const data = await upstream.json();
-  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const raw = data?.choices?.[0]?.message?.content;
   if (!raw) return json({ error: 'empty completion' }, 502);
 
+  /* Without json mode the model may wrap the object in prose or a code
+     fence, so take the outermost braces rather than trusting the whole
+     string to parse. */
   let parsed;
-  try { parsed = JSON.parse(raw); } catch { return json({ error: 'unparseable completion' }, 502); }
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    const slice = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1);
+    try { parsed = JSON.parse(slice); } catch { return json({ error: 'unparseable completion' }, 502); }
+  }
 
   return json({
     answer: String(parsed.answer || ''),
