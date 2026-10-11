@@ -42,8 +42,10 @@ keyword index instead of Gemini.
 2. Worker → **Settings** → **Variables and Secrets** → **Add**:
    - `GROQ_KEY` — type **Secret** — the key
    - `MODEL` — type **Text**, optional — tried first, then known-good
-     fallbacks (`llama-3.3-70b-versatile`, then `llama-3.1-8b-instant`).
-     Current ids: <https://console.groq.com/docs/models>
+     fallbacks, then whatever the provider reports as live. Ids get
+     retired often; list yours with
+     `GET https://api.groq.com/openai/v1/models` and an
+     `Authorization: Bearer <key>` header
 3. **Redeploy** (Deployments → latest → Retry). Variables only reach the Worker
    on a fresh deploy.
 
@@ -65,7 +67,7 @@ If it fell back, open DevTools → Network → the `/api/chat` call:
 | 503 | `GROQ_KEY` missing — add it, then redeploy |
 | 429 | Rate limit, yours or Google's — expected under load, harmless |
 | 400 | Request rejected — the response carries the upstream `detail` naming the field |
-| 404 | No model matched. The response lists what it `tried`; pick a current id from <https://console.groq.com/docs/models> and set `MODEL` |
+| 404 | Every id was dead *and* discovery failed. The response lists what it `tried`; set `MODEL` to a live id from `GET /openai/v1/models` |
 
 The Worker rate-limits to 8 requests per minute per IP and caps questions at 500
 characters, so a stranger cannot drain the free quota.
