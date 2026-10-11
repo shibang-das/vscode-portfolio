@@ -11,7 +11,9 @@
 
    Environment (Worker → Settings → Variables and Secrets):
      GEMINI_KEY  secret, required — AI Studio key, free tier only
-     MODEL       text,   optional — defaults to gemini-2.0-flash
+     MODEL       text,   optional — tried first, then known-good
+                 fallbacks; list what your key can call with
+                 GET /v1beta/models and the same key header
 
    No paid features anywhere: no streaming, no KV, no durable objects.
    When the free quota runs out Google returns 429, this returns 429,
@@ -58,41 +60,65 @@ async function chat(request, env) {
     { role: 'user', parts: [{ text: question }] }
   ];
 
-  const model = env.MODEL || 'gemini-2.0-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  /* Model ids get retired, and a retired id answers 404 — which used
+     to surface as a bare "upstream 404" with no hint that the name was
+     the problem. Try the configured model first, then known-good
+     fallbacks, and report what actually served. */
+  const candidates = [env.MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']
+    .filter(Boolean)
+    .filter((m, i, a) => a.indexOf(m) === i);
 
-  let upstream;
-  try {
-    upstream = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: String(body.system || '').slice(0, 20000) }] },
-        contents,
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 400,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'object',
-            properties: {
-              answer: { type: 'string' },
-              open: {
-                type: 'string',
-                enum: ['home', 'about', 'experience', 'projects', 'skills',
-                       'achievements', 'contact', 'readme', 'resume', 'none']
-              }
-            },
-            required: ['answer', 'open']
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: String(body.system || '').slice(0, 20000) }] },
+    contents,
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 400,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'object',
+        properties: {
+          answer: { type: 'string' },
+          open: {
+            type: 'string',
+            enum: ['home', 'about', 'experience', 'projects', 'skills',
+                   'achievements', 'contact', 'readme', 'resume', 'none']
           }
-        }
-      })
-    });
-  } catch {
-    return json({ error: 'upstream unreachable' }, 502);
+        },
+        required: ['answer', 'open']
+      }
+    }
+  });
+
+  let upstream, served, detail = '';
+  for (const candidate of candidates) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent`;
+    try {
+      upstream = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
+        body: payload
+      });
+    } catch {
+      return json({ error: 'upstream unreachable' }, 502);
+    }
+    if (upstream.ok) { served = candidate; break; }
+
+    /* Keep Google's own message — "models/x is not found for API
+       version v1beta" names the fault in one line, where a bare status
+       code sends you looking in the wrong place. */
+    detail = (await upstream.text().catch(() => '')).slice(0, 300);
+    if (upstream.status !== 404) break;        // only a missing model is worth retrying
   }
 
-  if (!upstream.ok) return json({ error: 'upstream ' + upstream.status }, upstream.status);
+  if (!upstream || !upstream.ok) {
+    const status = upstream ? upstream.status : 502;
+    return json({
+      error: 'upstream ' + status,
+      tried: candidates,
+      detail: detail || undefined
+    }, status);
+  }
 
   const data = await upstream.json();
   const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -103,7 +129,8 @@ async function chat(request, env) {
 
   return json({
     answer: String(parsed.answer || ''),
-    open: parsed.open && parsed.open !== 'none' ? parsed.open : null
+    open: parsed.open && parsed.open !== 'none' ? parsed.open : null,
+    model: served
   });
 }
 

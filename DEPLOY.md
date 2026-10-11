@@ -36,7 +36,9 @@ keyword index instead of Gemini.
    pick a project with **no billing account**. Copy it; never commit it.
 2. Worker → **Settings** → **Variables and Secrets** → **Add**:
    - `GEMINI_KEY` — type **Secret** — the key
-   - `MODEL` — type **Text**, optional — defaults to `gemini-2.0-flash`
+   - `MODEL` — type **Text**, optional — tried first, then known-good
+     fallbacks. Model ids get retired; list what your key can call with
+     `GET https://generativelanguage.googleapis.com/v1beta/models`
 3. **Redeploy** (Deployments → latest → Retry). Variables only reach the Worker
    on a fresh deploy.
 
@@ -55,7 +57,8 @@ If it fell back, open DevTools → Network → the `/api/chat` call:
 | 404 | Worker not handling the route — check `main` and `name` in `wrangler.jsonc` |
 | 503 | `GEMINI_KEY` missing — add it, then redeploy |
 | 429 | Rate limit, yours or Google's — expected under load, harmless |
-| 400 | Bad model name in `MODEL` |
+| 400 | Key rejected — regenerate it in AI Studio |
+| 404 | No model matched. The response lists what it `tried` and carries Google's own `detail`; find a valid id with `GET https://generativelanguage.googleapis.com/v1beta/models` and the same `x-goog-api-key` header, then set `MODEL` |
 
 The Worker rate-limits to 8 requests per minute per IP and caps questions at 500
 characters, so a stranger cannot drain the free quota.
