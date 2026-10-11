@@ -68,47 +68,62 @@ async function chat(request, env) {
     .filter(Boolean)
     .filter((m, i, a) => a.indexOf(m) === i);
 
-  const payload = JSON.stringify({
+  /* The REST API types are an enum — OBJECT/STRING uppercase. The SDKs
+     accept lowercase and quietly normalise it; v1beta answers 400.
+     Structured output is also the most fragile part of the request, so
+     it is built separately and can be dropped on a retry. */
+  const SCHEMA = {
+    type: 'OBJECT',
+    properties: {
+      answer: { type: 'STRING' },
+      open: {
+        type: 'STRING',
+        enum: ['home', 'about', 'experience', 'projects', 'skills',
+               'achievements', 'contact', 'readme', 'resume', 'none']
+      }
+    },
+    required: ['answer', 'open']
+  };
+
+  const buildPayload = structured => JSON.stringify({
     systemInstruction: { parts: [{ text: String(body.system || '').slice(0, 20000) }] },
     contents,
     generationConfig: {
       temperature: 0.3,
       maxOutputTokens: 400,
       responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'object',
-        properties: {
-          answer: { type: 'string' },
-          open: {
-            type: 'string',
-            enum: ['home', 'about', 'experience', 'projects', 'skills',
-                   'achievements', 'contact', 'readme', 'resume', 'none']
-          }
-        },
-        required: ['answer', 'open']
-      }
+      ...(structured ? { responseSchema: SCHEMA } : {})
     }
   });
 
   let upstream, served, detail = '';
   for (const candidate of candidates) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent`;
-    try {
-      upstream = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
-        body: payload
-      });
-    } catch {
-      return json({ error: 'upstream unreachable' }, 502);
-    }
-    if (upstream.ok) { served = candidate; break; }
 
-    /* Keep Google's own message — "models/x is not found for API
-       version v1beta" names the fault in one line, where a bare status
-       code sends you looking in the wrong place. */
-    detail = (await upstream.text().catch(() => '')).slice(0, 300);
-    if (upstream.status !== 404) break;        // only a missing model is worth retrying
+    /* Ask for a schema first; if the model rejects the request outright,
+       try it once more as plain JSON. The prompt already describes the
+       shape, so an unschema'd answer still parses — losing the
+       guarantee beats losing the feature. */
+    for (const structured of [true, false]) {
+      try {
+        upstream = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
+          body: buildPayload(structured)
+        });
+      } catch {
+        return json({ error: 'upstream unreachable' }, 502);
+      }
+      if (upstream.ok) { served = structured ? candidate : candidate + ' (no schema)'; break; }
+
+      /* Keep Google's own message — "models/x is not found for API
+         version v1beta" names the fault in one line, where a bare status
+         code sends you looking in the wrong place. */
+      detail = (await upstream.text().catch(() => '')).slice(0, 300);
+      if (upstream.status !== 400) break;      // only a rejected request is worth re-shaping
+    }
+    if (upstream.ok) break;
+    if (upstream.status !== 404) break;        // only a missing model is worth another candidate
   }
 
   if (!upstream || !upstream.ok) {
