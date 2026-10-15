@@ -18,7 +18,9 @@
    Environment (Worker → Settings → Variables and Secrets):
      GROQ_KEY  secret, required — console.groq.com key, free tier
      VIEWS     KV namespace, optional — backs the view counter; without
-               it /api/views reports 503 and the UI hides the number
+               it /api/views reports 503 and the UI hides the number.
+               KV's free tier allows 1k writes/day, so a load counter
+               stops rising past that until the day rolls over
      MODEL     text,   optional — tried first, then known-good
                fallbacks, then whatever /v1/models reports as live
 
@@ -29,16 +31,20 @@
 
 const MAX_QUESTION = 500;        // characters
 const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 8;        // per IP, per minute
 
-const hits = new Map();          // in-memory; resets when the isolate recycles
+/* Separate buckets per endpoint, because they guard different things:
+   chat spends upstream quota, views spends a KV write. Sharing one
+   bucket meant reloading the page ate the visitor's question budget. */
+const LIMITS = { chat: 8, views: 30 };          // per IP, per minute
+const hits = { chat: new Map(), views: new Map() };
 
-function rateLimited(ip, now) {
-  const seen = (hits.get(ip) || []).filter(t => now - t < WINDOW_MS);
+function rateLimited(bucket, ip, now) {
+  const map = hits[bucket];
+  const seen = (map.get(ip) || []).filter(t => now - t < WINDOW_MS);
   seen.push(now);
-  hits.set(ip, seen);
-  if (hits.size > 5000) hits.clear();          // crude cap, keeps memory flat
-  return seen.length > MAX_PER_WINDOW;
+  map.set(ip, seen);
+  if (map.size > 5000) map.clear();            // crude cap, keeps memory flat
+  return seen.length > LIMITS[bucket];
 }
 
 /* Model ids are retired without warning — both of the ones this started
@@ -100,12 +106,12 @@ async function views(request, env) {
   const current = Number(await env.VIEWS.get(VIEWS_KEY)) || 0;
   if (request.method === 'GET') return json({ views: current });
 
-  /* One increment per visitor session — the client holds that flag,
-     since the alternative is storing IPs, which is a privacy cost for
-     a vanity number. Still rate-limited so the endpoint cannot be
-     used to inflate the count in a loop. */
+  /* Every page load counts, so this is a load counter rather than a
+     unique-visitor one. The per-IP cap is what keeps a held-down
+     refresh key from spending the day's KV writes — over it, the
+     current count is returned without a write. */
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (rateLimited(ip, Date.now())) return json({ views: current }, 200);
+  if (rateLimited('views', ip, Date.now())) return json({ views: current }, 200);
 
   const next = current + 1;
   await env.VIEWS.put(VIEWS_KEY, String(next));
@@ -116,7 +122,7 @@ async function chat(request, env) {
   if (!env.GROQ_KEY) return json({ error: 'not configured' }, 503);
 
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (rateLimited(ip, Date.now())) return json({ error: 'rate limited' }, 429);
+  if (rateLimited('chat', ip, Date.now())) return json({ error: 'rate limited' }, 429);
 
   let body;
   try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
