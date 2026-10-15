@@ -160,18 +160,22 @@ const App = (() => {
   }
 
   /* ── view counter ──────────────────────────────────────────
-     Counts page loads, not sessions: every load posts. The endpoint
-     is optional — no KV binding, no network, or a stale deploy all
-     end the same way, with the status bar slot staying hidden rather
-     than showing a zero or an error. */
+     One POST per browser session, a GET on every other load. The
+     endpoint is optional: no KV binding, no network, or a stale
+     deploy all end the same way — the status bar slot stays hidden
+     rather than showing a zero or an error. */
+  const VIEW_FLAG = 'devbox.counted';
+
   async function countView() {
     const el = $('stViews');
     if (!el) return;
+    const counted = sessionStorage.getItem(VIEW_FLAG);
     try {
-      const res = await fetch('/api/views', { method: 'POST' });
+      const res = await fetch('/api/views', { method: counted ? 'GET' : 'POST' });
       if (!res.ok) return;
       const { views } = await res.json();
       if (typeof views !== 'number') return;
+      sessionStorage.setItem(VIEW_FLAG, '1');
       el.textContent = `◉ ${views.toLocaleString()} ${views === 1 ? 'view' : 'views'}`;
       el.classList.remove('hidden');
     } catch { /* offline or no endpoint — the slot stays hidden */ }
