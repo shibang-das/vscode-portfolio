@@ -99,7 +99,10 @@ screenshot:
 node tools/make-og.js my-screenshot.png
 ```
 
-That centre-crops to 1.91:1 and scales to 1200x630. After deploying, force the
+That centre-crops to 1.91:1 and scales to 1200x630. It reads PNG only — a
+JPEG screenshot needs re-saving as PNG first. Centre-cropping a full-window
+screenshot can slice the sidebar mid-label; padding the frame to the card
+instead, on the editor background, keeps the whole UI readable. After deploying, force the
 scrape at <https://www.linkedin.com/post-inspector/> — a failed preview is
 cached, so pasting the link again will keep showing the old result.
 
