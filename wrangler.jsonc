@@ -1,30 +1,37 @@
 {
-  // Worker + static assets. Everything under public/ is served by
-  // Cloudflare's asset layer; src/index.js only runs for paths the
-  // assets do not cover — in practice POST /api/chat.
-  "name": "vscode-portfolio",
-  "main": "src/index.js",
-  "compatibility_date": "2025-09-01",
-
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    // index.html is the only document; unknown paths fall back to it
-    // rather than a bare 404, so deep links keep working.
-    "not_found_handling": "single-page-application"
-  },
-
-  "observability": {
-    "enabled": true
-  },
-
-  // Opts into per-branch preview URLs — Workers Builds runs
-  // `wrangler preview` for pull requests and refuses without this.
-  // Empty is the whole contract: assets, compatibility settings and
-  // placement stay at the top level and are inherited.
-  "previews": {}
-
-  // GEMINI_KEY is a secret, set in the dashboard or with
-  // `npx wrangler secret put GEMINI_KEY`. Never put it in this file —
-  // it is committed to the repo.
+	// Worker + static assets. Everything under public/ is served by
+	// Cloudflare's asset layer; src/index.js only runs for paths the
+	// assets do not cover — in practice POST /api/chat.
+	"name": "vscode-portfolio",
+	"main": "src/index.js",
+	"compatibility_date": "2025-09-01",
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		// index.html is the only document; unknown paths fall back to it
+		// rather than a bare 404, so deep links keep working.
+		"not_found_handling": "single-page-application"
+	},
+	"observability": {
+		"enabled": true
+	},
+	// Opts into per-branch preview URLs — Workers Builds runs
+	// `wrangler preview` for pull requests and refuses without this.
+	// Empty is the whole contract: assets, compatibility settings and
+	// placement stay at the top level and are inherited.
+	"previews": {},
+	// View counter storage. The id is a namespace handle, not a secret —
+	// nothing is readable without the account. "remote": true points
+	// `wrangler dev` at the live namespace instead of a local shim, so
+	// local runs share the real count.
+	"kv_namespaces": [
+		{
+			"binding": "VIEWS",
+			"id": "5021e3e76279423bb7a2874e881a6ef7",
+			"remote": true
+		}
+	]
+	// GROQ_KEY is a secret, set in the dashboard or with
+	// `npx wrangler secret put GROQ_KEY`. Never put it in this file —
+	// it is committed to the repo.
 }
