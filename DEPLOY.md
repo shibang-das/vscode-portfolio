@@ -64,19 +64,12 @@ npx wrangler kv namespace create VIEWS
 
 Paste the printed id into the commented `kv_namespaces` block in
 [`wrangler.jsonc`](wrangler.jsonc), uncomment it, and push. KV's free tier is
-100k reads and 1k writes a day, and every page load is one write — so the
-counter stops rising past roughly a thousand loads until the day rolls over.
-Nothing breaks and nothing is billed; the number simply stalls.
+100k reads and 1k writes a day; a visitor costs one write per browser session
+and one read per page load.
 
-It counts loads, not people: a reload is a view, which is the usual convention
-for a counter like this. The count is also approximate by design — concurrent
-visitors can collapse into one increment, and KV reads are eventually
-consistent. A Durable Object would be exact; for a number on a status bar that
-is the wrong trade.
-
-Per-IP caps are per endpoint: 30 loads/min for views, 8/min for chat. They were
-one shared bucket until counting every load made refreshes eat the visitor's
-question budget.
+The count is approximate by design — concurrent visitors can collapse into one
+increment, and KV reads are eventually consistent. A Durable Object would be
+exact; for a number on a status bar that is the wrong trade.
 
 ## 4. Check it
 
