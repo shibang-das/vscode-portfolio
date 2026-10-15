@@ -162,7 +162,7 @@ const App = (() => {
   function paintGutter() {
     const h = $('editor').scrollHeight;
     const lines = Math.max(30, Math.ceil(h / 22.8));
-    $('gutter').textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+    $('gutterLines').textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
   }
   function paintMinimap() {
     const mm = $('minimap');
@@ -709,7 +709,10 @@ const App = (() => {
     tickClock(); setInterval(tickClock, 15000);
     addEventListener('resize', () => { paintGutter(); paintMinimap(); });
     $('editorScroll').addEventListener('scroll', () => {
-      $('gutter').style.transform = `translateY(${-$('editorScroll').scrollTop}px)`;
+      /* Move the numbers, not the column. Transforming the gutter itself
+         lifted its whole box out of the editor shell and over the tab
+         bar and breadcrumb once you scrolled. */
+      $('gutterLines').style.transform = `translateY(${-$('editorScroll').scrollTop}px)`;
     });
     boot();
   }
