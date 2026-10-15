@@ -159,6 +159,28 @@ const App = (() => {
     if (form) wireContactForm(form);
   }
 
+  /* ── view counter ──────────────────────────────────────────
+     One POST per browser session, a GET on every other load. The
+     endpoint is optional: no KV binding, no network, or a stale
+     deploy all end the same way — the status bar slot stays hidden
+     rather than showing a zero or an error. */
+  const VIEW_FLAG = 'devbox.counted';
+
+  async function countView() {
+    const el = $('stViews');
+    if (!el) return;
+    const counted = sessionStorage.getItem(VIEW_FLAG);
+    try {
+      const res = await fetch('/api/views', { method: counted ? 'GET' : 'POST' });
+      if (!res.ok) return;
+      const { views } = await res.json();
+      if (typeof views !== 'number') return;
+      sessionStorage.setItem(VIEW_FLAG, '1');
+      el.textContent = `◉ ${views.toLocaleString()} ${views === 1 ? 'view' : 'views'}`;
+      el.classList.remove('hidden');
+    } catch { /* offline or no endpoint — the slot stays hidden */ }
+  }
+
   function paintGutter() {
     const h = $('editor').scrollHeight;
     const lines = Math.max(30, Math.ceil(h / 22.8));
@@ -707,6 +729,7 @@ const App = (() => {
     Term.init(); Assistant.init();
     wireResizers(); wireKeys(); wireGlobalActions();
     tickClock(); setInterval(tickClock, 15000);
+    countView();
     addEventListener('resize', () => { paintGutter(); paintMinimap(); });
     $('editorScroll').addEventListener('scroll', () => {
       /* Move the numbers, not the column. Transforming the gutter itself

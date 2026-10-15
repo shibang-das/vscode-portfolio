@@ -17,6 +17,8 @@
 
    Environment (Worker → Settings → Variables and Secrets):
      GROQ_KEY  secret, required — console.groq.com key, free tier
+     VIEWS     KV namespace, optional — backs the view counter; without
+               it /api/views reports 503 and the UI hides the number
      MODEL     text,   optional — tried first, then known-good
                fallbacks, then whatever /v1/models reports as live
 
@@ -79,6 +81,36 @@ const json = (body, status = 200) =>
     status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
   });
+
+/* ── view counter ─────────────────────────────────────────────
+   Backed by Workers KV. The count is deliberately approximate:
+   read-modify-write races mean simultaneous visitors can collapse
+   into one increment, and KV reads are eventually consistent. A
+   Durable Object would be exact, but for a number on a status bar
+   that is the wrong trade — this costs nothing and never blocks the
+   page.
+
+   Absent binding is a normal state, not an error: without VIEWS the
+   endpoint reports unavailable and the UI simply shows nothing. */
+const VIEWS_KEY = 'site:views';
+
+async function views(request, env) {
+  if (!env.VIEWS) return json({ error: 'not configured' }, 503);
+
+  const current = Number(await env.VIEWS.get(VIEWS_KEY)) || 0;
+  if (request.method === 'GET') return json({ views: current });
+
+  /* One increment per visitor session — the client holds that flag,
+     since the alternative is storing IPs, which is a privacy cost for
+     a vanity number. Still rate-limited so the endpoint cannot be
+     used to inflate the count in a loop. */
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (rateLimited(ip, Date.now())) return json({ views: current }, 200);
+
+  const next = current + 1;
+  await env.VIEWS.put(VIEWS_KEY, String(next));
+  return json({ views: next });
+}
 
 async function chat(request, env) {
   if (!env.GROQ_KEY) return json({ error: 'not configured' }, 503);
@@ -202,6 +234,12 @@ export default {
     if (pathname === '/api/chat') {
       if (request.method !== 'POST') return json({ error: 'POST only' }, 405);
       return chat(request, env);
+    }
+
+    if (pathname === '/api/views') {
+      if (request.method !== 'GET' && request.method !== 'POST')
+        return json({ error: 'GET or POST only' }, 405);
+      return views(request, env);
     }
 
     /* Anything else is the site itself. The assets binding handles

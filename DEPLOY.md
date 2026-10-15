@@ -53,7 +53,25 @@ Or from the terminal: `npx wrangler secret put GROQ_KEY`.
 
 If you previously set `GEMINI_KEY`, delete it — it is no longer read.
 
-## 3. Check it
+## 3. Turn on the view counter (optional)
+
+The status bar shows a view count when a KV namespace is bound, and shows
+nothing at all when it is not — no error, no zero.
+
+```
+npx wrangler kv namespace create VIEWS
+```
+
+Paste the printed id into the commented `kv_namespaces` block in
+[`wrangler.jsonc`](wrangler.jsonc), uncomment it, and push. KV's free tier is
+100k reads and 1k writes a day; a visitor costs one write per browser session
+and one read per page load.
+
+The count is approximate by design — concurrent visitors can collapse into one
+increment, and KV reads are eventually consistent. A Durable Object would be
+exact; for a number on a status bar that is the wrong trade.
+
+## 4. Check it
 
 Open the site, press `Ctrl+I`, and ask something the keyword index could never
 answer — *"would he be a good fit for a payments team?"*. A specific, reasoned
@@ -71,6 +89,19 @@ If it fell back, open DevTools → Network → the `/api/chat` call:
 
 The Worker rate-limits to 8 requests per minute per IP and caps questions at 500
 characters, so a stranger cannot drain the free quota.
+
+## Refreshing the link preview
+
+`public/assets/og.png` is what LinkedIn, Slack and X show. To rebuild it from a
+screenshot:
+
+```
+node tools/make-og.js my-screenshot.png
+```
+
+That centre-crops to 1.91:1 and scales to 1200x630. After deploying, force the
+scrape at <https://www.linkedin.com/post-inspector/> — a failed preview is
+cached, so pasting the link again will keep showing the old result.
 
 ## Local development
 

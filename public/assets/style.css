@@ -613,6 +613,7 @@ a.rating:hover { transform: translateY(-2px); text-decoration: none; border-colo
 button.st-item:hover { background: var(--bg4); color: var(--bright); }
 .st-item .i { width: 12px; height: 12px; }
 .st-item.accent { color: var(--acc); }
+#stViews { font-variant-numeric: tabular-nums; }
 .st-spacer { flex: 1; }
 
 /* ── overlays: palette + sheets ─────────────────────────────── */

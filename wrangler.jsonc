@@ -14,6 +14,14 @@
     "not_found_handling": "single-page-application"
   },
 
+  // View counter storage. Create the namespace once with
+  //   npx wrangler kv namespace create VIEWS
+  // then paste the printed id below and uncomment. Without it the
+  // site still works — the counter simply does not appear.
+  // "kv_namespaces": [
+  //   { "binding": "VIEWS", "id": "PASTE_NAMESPACE_ID" }
+  // ],
+
   "observability": {
     "enabled": true
   },

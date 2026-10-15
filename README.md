@@ -53,6 +53,7 @@ Deployment is in [DEPLOY.md](DEPLOY.md).
 | Contact form with validation | `contact.sh` |
 | Full keyboard control + shortcut sheet | `?` |
 | Mobile layout (drawer sidebar, no chrome) | ≤860px |
+| View counter, KV-backed and optional | status bar |
 
 ## Two things to configure
 
